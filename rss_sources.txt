@@ -1,0 +1,4 @@
+# Add URLs of files from sites you want to fetch
+# Split URL and file name by ;
+# Uncomment the line below to test
+# https://www.google.com/index.html;google_index.html

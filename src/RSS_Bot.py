@@ -8,6 +8,7 @@ from Logger import set_logger
 
 PRJCT_DIR = os.path.abspath('.') # FIXME : maybe broken if not executed in the right folder
 PRJCT_LOGS = PRJCT_DIR+r'\logs'
+PRJCT_RSS = PRJCT_DIR+r'\rss_src\\'
 
 class RSS_Bot():
     """
@@ -19,6 +20,9 @@ class RSS_Bot():
         Initialise the logger and create log folder
         """
         
+        # Create rss_src folder
+        if not os.path.exists(PRJCT_RSS):
+            os.mkdir(PRJCT_RSS)
         # Create log folder
         if not os.path.exists(PRJCT_LOGS):
             os.mkdir(PRJCT_LOGS)
@@ -52,7 +56,7 @@ class RSS_Bot():
                             logger.warning("Unable to fetch data from "+xml_url+' '+str(r.status_code))
                             logger.debug('File: '+path_src_file+', line '+str(cpt_line))
                         else:
-                            open(PRJCT_DIR+r'\rss_src\\'+xml_file,'wb').write(r.content)
+                            open(PRJCT_RSS+xml_file,'wb').write(r.content)
 
                     except requests.HTTPError as e:
                         logger.warning(e)

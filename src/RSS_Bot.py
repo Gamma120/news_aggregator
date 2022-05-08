@@ -1,6 +1,7 @@
 import os
 import requests
-from logging import getLogger
+from inspect import currentframe, getframeinfo
+from logging import exception, getLogger
 from Logger import set_logger
 
 # TODO : make path Linux compatible
@@ -14,6 +15,10 @@ class RSS_Bot():
     """
     
     def __init__(self):
+        """
+        Initialise the logger and create log folder
+        """
+        
         # Create log folder
         if not os.path.exists(PRJCT_LOGS):
             os.mkdir(PRJCT_LOGS)
@@ -22,45 +27,64 @@ class RSS_Bot():
         # Create logger
         set_logger('RSS_Bot', path_log)
         
-    def fetch(self,src_file: str):
+        
+    def fetch(self,path_src_file: str):
         """
         Fetch RSS flux from RSS_sources file
         """
         
         logger = self.get_logger()
-        path_rss_sources = src_file
         try:
-            rss_sources = open(path_rss_sources,'r')
+            rss_sources = open(path_src_file,'r')
             logger.info("Begin fetching...")
             
+            cpt_line = 1 # To track line number for easier error message
             for line in rss_sources:
                 # Ignore empty and comment lines
-                if line != "\n" and line[0] != "#":
+                if line[0] != "\n" and line[0] != "#":
                     line = line.split(';')
+                    # Check formating in the file
                     xml_url = line[0]
                     xml_file = line[1].strip('\n')
                     try:
                         r = requests.get(xml_url)
                         if r.status_code != 200:
                             logger.warning("Unable to fetch data from "+xml_url+' '+str(r.status_code))
+                            logger.debug('File: '+path_src_file+', line '+str(cpt_line))
                         else:
                             open(PRJCT_DIR+r'\rss_src\\'+xml_file,'wb').write(r.content)
-                            
-                    except requests.HTTPError:
-                        logger.warning("Unable to fetch data from "+xml_url+' '+str(r.status_code))
-                    except requests.Timeout:
-                        logger.warning("Connexion timeout from "+xml_url)
-                    except requests.ConnectionError:
-                        logger.warning("A Connection error occurred.")
+
+                    except requests.HTTPError as e:
+                        logger.warning(e)
+                        logger.debug('File: '+path_src_file+', line '+str(cpt_line))
+                    except requests.Timeout as e:
+                        logger.warning(e)
+                        logger.debug('File: '+path_src_file+', line '+str(cpt_line))
+                    except requests.ConnectionError as e:
+                        logger.warning(e)
+                        logger.debug('File: '+path_src_file+', line '+str(cpt_line))
+                    except FileNotFoundError as e:
+                        logger.error("Wrong formating in "+path_src_file+', line '+str(cpt_line))
+                        logger.error(e)
+                    except requests.exceptions.MissingSchema as e:
+                        logger.error("Wrong formating in "+path_src_file+', line '+str(cpt_line))
+                        logger.error(e)
+                cpt_line+=1
                     
-        except FileNotFoundError:
-            logger.error("File not found : "+path_rss_sources)
-        
-        logger.info("Fetch completed.")
+        except FileNotFoundError as e:
+            logger.error(e)
+                    
+        finally:
+            rss_sources.close()
+            logger.info("Fetch completed.")
         
     
     def get_logger(self):
-        return getLogger('RSS_Bot')
+        # Change the logger if it's a test
+        if __name__ != '__main__':
+            return getLogger('Test_RSS_Bot')
+        else:
+            return getLogger('RSS_Bot')
     
     
     

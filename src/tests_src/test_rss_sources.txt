@@ -1,0 +1,14 @@
+# Successful case, no entry in the log
+https://www.google.com/index.html;google_index.html
+
+# - WARNING - Unable to fetch data
+https://www.google.com/ndex.html;google_index.html
+
+# - WARNING - HTTPSConnectionPool
+https://www.azertyuiopqsdfghjklm.com/azertyuiopqsdfghjklm.html;google_index.html
+
+# - ERROR - Formatting
+https://www.google.com/index.html;
+
+# - ERROR - Formatting
+;google_index.html

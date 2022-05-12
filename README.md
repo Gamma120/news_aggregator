@@ -15,7 +15,7 @@ The goal is to **feed a discord channel/server of news from a cutomisable list o
 
 **Step 2:** run 
 ```python 
-python path/to/project_directory/RSS_bot.py
+python path/to/project_directory/src/RSS_bot.py
 ```
 
 **Step 3:** ???

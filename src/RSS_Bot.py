@@ -1,7 +1,6 @@
 import os
 import requests
-from inspect import currentframe, getframeinfo
-from logging import exception, getLogger
+from logging import getLogger
 from Logger import set_logger
 
 # TODO : make path Linux compatible
@@ -38,6 +37,7 @@ class RSS_Bot():
         """
         
         logger = self.get_logger()
+        rss_sources = None
         try:
             rss_sources = open(path_src_file,'r')
             logger.info("Begin fetching...")
@@ -48,38 +48,46 @@ class RSS_Bot():
                 if line[0] != "\n" and line[0] != "#":
                     line = line.split(';')
                     # Check formating in the file
-                    xml_url = line[0]
-                    xml_file = line[1].strip('\n')
-                    try:
-                        r = requests.get(xml_url)
-                        if r.status_code != 200:
-                            logger.warning("Unable to fetch data from "+xml_url+' '+str(r.status_code))
-                            logger.debug('File: '+path_src_file+', line '+str(cpt_line))
-                        else:
-                            open(PRJCT_RSS+xml_file,'wb').write(r.content)
+                    if len(line)!=2:
+                        logger.error("Wrong formating in "+path_src_file+', line '+str(cpt_line))
+                    
+                    else:
+                        xml_url = line[0]
+                        xml_file = line[1].strip('\n')
+                        try:
+                            r = requests.get(xml_url)
+                            if r.status_code != 200:
+                                logger.warning("Unable to fetch data from "+xml_url+' '+str(r.status_code))
+                                logger.debug('File: '+path_src_file+', line '+str(cpt_line))
+                            else:
+                                open(PRJCT_RSS+xml_file,'wb').write(r.content)
 
-                    except requests.HTTPError as e:
-                        logger.warning(e)
-                        logger.debug('File: '+path_src_file+', line '+str(cpt_line))
-                    except requests.Timeout as e:
-                        logger.warning(e)
-                        logger.debug('File: '+path_src_file+', line '+str(cpt_line))
-                    except requests.ConnectionError as e:
-                        logger.warning(e)
-                        logger.debug('File: '+path_src_file+', line '+str(cpt_line))
-                    except FileNotFoundError as e:
-                        logger.error("Wrong formating in "+path_src_file+', line '+str(cpt_line))
-                        logger.error(e)
-                    except requests.exceptions.MissingSchema as e:
-                        logger.error("Wrong formating in "+path_src_file+', line '+str(cpt_line))
-                        logger.error(e)
+                        except requests.HTTPError as e:
+                            logger.warning(e)
+                            logger.debug('File: '+path_src_file+', line '+str(cpt_line))
+                        except requests.Timeout as e:
+                            logger.warning(e)
+                            logger.debug('File: '+path_src_file+', line '+str(cpt_line))
+                        except requests.ConnectionError as e:
+                            logger.warning(e)
+                            logger.debug('File: '+path_src_file+', line '+str(cpt_line))
+                        except FileNotFoundError as e:
+                            logger.error("Wrong formating in "+path_src_file+', line '+str(cpt_line))
+                            logger.error(e)
+                        except requests.exceptions.MissingSchema as e:
+                            logger.error("Wrong formating in "+path_src_file+', line '+str(cpt_line))
+                            logger.error(e)
                 cpt_line+=1
                     
         except FileNotFoundError as e:
             logger.error(e)
                     
         finally:
-            rss_sources.close()
+            if rss_sources!= None:
+                try:
+                    rss_sources.close()
+                except Exception as  e:
+                    logger.error(e)
             logger.info("Fetch completed.")
         
     

@@ -4,6 +4,8 @@ from Logger import set_logger
 
 # FIXME : curently not working with pytest
 
+PRJCT_TEST_SRC = PRJCT_DIR+r'\src\tests_src'
+
 def test_logger():
     """
     Test if the logger add a line in the log file
@@ -34,7 +36,7 @@ def test_fetch():
     """
 
     # path to test_rss_sources.txt
-    path_test_rss_sources = PRJCT_DIR+r'\src\tests_src\test_rss_sources.txt'
+    path_test_rss_sources = PRJCT_TEST_SRC+r'\test_rss_sources.txt'
     # Test
     rss_bot.fetch(path_test_rss_sources)
     
@@ -42,7 +44,7 @@ def test_fetch():
     # Compare log level between Test_RSS_Bot.log and test_fetch_res.txt
     try:
         log_file = open(path_log,'r')
-        res_file = open(PRJCT_DIR+r'\src\tests_src\test_fetch_res.txt','r')
+        res_file = open(PRJCT_TEST_SRC+r'\test_fetch_res.txt','r')
         for line in log_file:
             res_line = res_file.readline().strip('\n') # get rid of \n
             line = line.split(' - ')
@@ -55,11 +57,6 @@ def test_fetch():
 
 
 if __name__ == '__main__':
-    # Create tmp folder
-    PRJCT_TMP = PRJCT_DIR+r'\tmp'
-    if not os.path.exists(PRJCT_TMP):
-        os.mkdir(PRJCT_TMP)
-    
     rss_bot = RSS_Bot()
     # Create logger
     path_log = PRJCT_TMP+r'\Test_RSS_Bot.log'

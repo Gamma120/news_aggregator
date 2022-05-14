@@ -2,12 +2,14 @@ import os
 import requests
 from logging import getLogger
 from Logger import set_logger
+import xml.etree.ElementTree as ET
 
 # TODO : make path Linux compatible
 
 PRJCT_DIR = os.path.abspath('.') # FIXME : maybe broken if not executed in the right folder
 PRJCT_LOGS = PRJCT_DIR+r'\logs'
 PRJCT_RSS = PRJCT_DIR+r'\rss_src\\'
+PRJCT_TMP = PRJCT_DIR+r'\tmp\\'
 
 class RSS_Bot():
     """
@@ -25,21 +27,26 @@ class RSS_Bot():
         # Create log folder
         if not os.path.exists(PRJCT_LOGS):
             os.mkdir(PRJCT_LOGS)
+        # Create tmp folder
+        if not os.path.exists(PRJCT_TMP):
+            os.mkdir(PRJCT_TMP)
         # path to RSS_Bot.log
-        path_log = PRJCT_LOGS+r"\RSS_Bot.log"
+        log_path = PRJCT_LOGS+r"\RSS_Bot.log"
         # Create logger
-        set_logger('RSS_Bot', path_log)
+        set_logger('RSS_Bot', log_path)
         
         
-    def fetch(self,path_src_file: str):
+    def fetch(self,src_path: str, dest_dir: str):
         """
         Fetch RSS flux from RSS_sources file
         """
         
         logger = self.get_logger()
-        rss_sources = None
         try:
-            rss_sources = open(path_src_file,'r')
+            rss_sources = open(src_path,'r')
+            # To keep track of the fetched files for future merge
+            fetched_file = open(PRJCT_TMP+r'fetched_files.txt','w')
+            
             logger.info("Begin fetching...")
             
             cpt_line = 1 # To track line number for easier error message
@@ -49,48 +56,95 @@ class RSS_Bot():
                     line = line.split(';')
                     # Check formating in the file
                     if len(line)!=2:
-                        logger.error("Wrong formating in "+path_src_file+', line '+str(cpt_line))
-                    
+                        logger.error("Wrong formating in "+src_path+', line '+str(cpt_line))
                     else:
                         xml_url = line[0]
-                        xml_file = line[1].strip('\n')
-                        try:
-                            r = requests.get(xml_url)
-                            if r.status_code != 200:
-                                logger.warning("Unable to fetch data from "+xml_url+' '+str(r.status_code))
-                                logger.debug('File: '+path_src_file+', line '+str(cpt_line))
-                            else:
-                                open(PRJCT_RSS+xml_file,'wb').write(r.content)
-
-                        except requests.HTTPError as e:
-                            logger.warning(e)
-                            logger.debug('File: '+path_src_file+', line '+str(cpt_line))
-                        except requests.Timeout as e:
-                            logger.warning(e)
-                            logger.debug('File: '+path_src_file+', line '+str(cpt_line))
-                        except requests.ConnectionError as e:
-                            logger.warning(e)
-                            logger.debug('File: '+path_src_file+', line '+str(cpt_line))
-                        except FileNotFoundError as e:
-                            logger.error("Wrong formating in "+path_src_file+', line '+str(cpt_line))
-                            logger.error(e)
-                        except requests.exceptions.MissingSchema as e:
-                            logger.error("Wrong formating in "+path_src_file+', line '+str(cpt_line))
-                            logger.error(e)
+                        xml_file_name = line[1].strip('\n')
+                        if xml_url=='' or xml_file_name=='':
+                            logger.error("Wrong formating in "+src_path+', line '+str(cpt_line))
+                        # Request the file
+                        else:
+                            try:
+                                r = requests.get(xml_url)
+                            except (requests.HTTPError,
+                                    requests.Timeout,
+                                    requests.exceptions.TooManyRedirects) as e:
+                                logger.warning(e)
+                                logger.debug('File: '+src_path+', line '+str(cpt_line))
+                            except (requests.ConnectionError,
+                                    requests.exceptions.InvalidURL) as e:
+                                logger.error(e)
+                                logger.debug('File: '+src_path+', line '+str(cpt_line))
+                            
+                            else :
+                                if r.status_code != 200:
+                                    logger.warning("Unable to fetch data from "+xml_url+' '+str(r.status_code))
+                                    logger.debug('File: '+src_path+', line '+str(cpt_line))
+                                else:
+                                    xml_path = dest_dir+xml_file_name
+                                    # if the file exist, create a up to date copy 
+                                    # that will be merge later with the old one
+                                    if os.path.exists(xml_path):
+                                        xml_path+='.new'
+                                    open(xml_path,'wb').write(r.content)
+                                    fetched_file.write(xml_path+'\n')
                 cpt_line+=1
+            rss_sources.close()
+            logger.info("Fetch completed.")
                     
         except FileNotFoundError as e:
             logger.error(e)
-                    
-        finally:
-            if rss_sources!= None:
-                try:
-                    rss_sources.close()
-                except Exception as  e:
-                    logger.error(e)
-            logger.info("Fetch completed.")
+
+
+    def xml_diff(self, xml_old: str, xml_new: str):
+        logger = self.get_logger()
         
+        # Parse the xml file into a tree
+        ## documentation https://docs.python.org/3/library/xml.etree.elementtree.html
+        try:
+            old_root = ET.parse(xml_old).getroot()
+            new_tree = ET.parse(xml_new)
+            new_root = new_tree.getroot()
+        except ET.ParseError as e: # catch if the file is not in xml format
+            logger.warning(e)
+        
+        old_item = old_root.find('channel').find('item')
+        if old_item==None:
+            logger.warning('File: '+xml_old+'does not contain any item.')
+        else:
+            old_title = old_item.find('title').text
+            new_items = new_root.find('channel').findall('item')
+            i=0
+            while i<len(new_items)-1 and new_items[i].find('title').text != old_title:
+                i+=1
+            
+            # if their is new item(s)
+            if i!=0: 
+                for j in range(i,len(new_items)):
+                    new_root.find('channel').remove(new_items[j]) # delete old item(s)
+                
+                # Replace old file   
+                new_tree.write(xml_old)
+            
+            os.remove(xml_new)
     
+    def merge(self, fetched_files_path: str):
+        logger = self.get_logger()
+        try:
+            fetched_files = open(fetched_files_path,'r')
+            logger.info("Begin merging...")
+            for line in fetched_files:
+                line = line.strip('\n')
+                line = line.split('.')
+                if len(line)==3 and line[2]=='new':
+                    xml_old = line[0]+'.'+line[1]
+                    xml_new = xml_old+'.'+line[2]
+                    self.xml_diff(xml_old,xml_new)
+            fetched_files.close()
+            logger.info("Merge completed.")
+        except FileNotFoundError as e:
+            logger.error(e)
+            
     def get_logger(self):
         # Change the logger if it's a test
         if __name__ != '__main__':
@@ -104,8 +158,9 @@ class RSS_Bot():
         logger = self.get_logger()
         logger.info("Bot starting...")
         
-        # fetch files in rss_sources
-        self.fetch(PRJCT_DIR+r"\rss_sources.txt")
+        # Fetch files in rss_sources
+        self.fetch(PRJCT_DIR+r"\rss_sources.txt", PRJCT_RSS)
+        self.merge(PRJCT_TMP+r'fetched_files.txt')
         
 
         

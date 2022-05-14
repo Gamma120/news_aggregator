@@ -102,31 +102,50 @@ class RSS_Bot():
         # Parse the xml file into a tree
         ## documentation https://docs.python.org/3/library/xml.etree.elementtree.html
         try:
-            old_root = ET.parse(xml_old).getroot()
+            old_tree = ET.parse(xml_old)
+            old_root = old_tree.getroot()
             new_tree = ET.parse(xml_new)
             new_root = new_tree.getroot()
         except ET.ParseError as e: # catch if the file is not in xml format
             logger.warning(e)
         
         old_item = old_root.find('channel').find('item')
-        if old_item==None:
-            logger.warning('File: '+xml_old+'does not contain any item.')
+        new_items = new_root.find('channel').findall('item')
+        
+        # serie of condition if xlm don't have items
+        if old_item==None and len(new_items)<1:
+            logger.error('Files: '+xml_old+' and '+xml_new+' does not contain any item.')
+        elif old_item==None or len(new_items)<1:
+            if old_item==None:
+                # replace old file by the new one and post
+                logger.warning('File: '+xml_old+' does not contain any item.')
+                new_items[0].set('post','yes')
+                new_tree.write(xml_old)
+            else:
+                # conserve old file and add attribut to not post
+                logger.warning('File: '+xml_new+' does not contain any item.')
+                old_item.set('post','no')
+                old_tree.write(xml_old)
         else:
             old_title = old_item.find('title').text
-            new_items = new_root.find('channel').findall('item')
             i=0
             while i<len(new_items)-1 and new_items[i].find('title').text != old_title:
                 i+=1
             
             # if their is new item(s)
-            if i!=0: 
+            if i!=0:
+                # add a tag to inform the discord bot to publish it
+                new_items[0].set('post','yes') 
                 for j in range(i,len(new_items)):
                     new_root.find('channel').remove(new_items[j]) # delete old item(s)
                 
                 # Replace old file   
-                new_tree.write(xml_old)
-            
-            os.remove(xml_new)
+                new_tree.write(xml_old) 
+            else:
+                # add a tag to inform the discord bot to not publish it
+                old_item.set('post','no')
+                old_tree.write(xml_old)
+        os.remove(xml_new)
     
     def merge(self, fetched_files_path: str):
         logger = self.get_logger()

@@ -1,4 +1,3 @@
-import shutil
 import pytest
 from RSS_Bot import *
 from logging import getLogger
@@ -39,7 +38,7 @@ def test_logger():
     except FileNotFoundError:
         print("[ERROR] File not found :", path_log)            
 
-def test_fetch():
+def test_fetch(): # may fail with pytest
     """
     Test RSS_Bot.fetch()
     """
@@ -89,5 +88,90 @@ def test_fetch():
     # Test existence
     assert(os.path.exists(PRJCT_TMP+file_name+'.new'))
     
-         
-#def test_xml_diff():
+def build_xml(file_path: str, nb_item: int):
+    """
+    Build xml for test_xml_diff()
+    """
+    root = ET.Element('rss')
+    channel = ET.SubElement(root,'channel')
+    for i in range(nb_item):
+        item = ET.SubElement(channel,'item')
+        title = ET.SubElement(item,'title')
+        link = ET.SubElement(item,'link')
+        description = ET.SubElement(item,'description')
+        
+        title.text = 'Title '+str(nb_item-i)
+        link.text = 'https://example.com'
+        description.text = 'Description of item '+str(nb_item-i)
+        
+    tree = ET.ElementTree(root)
+    tree.write(file_path)
+             
+def test_xml_diff():
+    """
+    Test RSS_Bot.xml_diff()
+    """
+    
+    # Path for the tmp xml files
+    test_xml_path = PRJCT_TMP+r'\test_xml.xml'
+    test_xml_new_path = PRJCT_TMP+r'\test_xml_new.xml'
+    
+    # Build xml files
+    nb_item = 2
+    nb_item_new = 4
+    build_xml(test_xml_path, nb_item)
+    build_xml(test_xml_new_path, nb_item_new)
+
+    
+    # Run tested function
+    rss_bot = RSS_Bot()
+    rss_bot.xml_diff(test_xml_path, test_xml_new_path)
+    
+    # Check existence of new file
+    assert(not os.path.exists(test_xml_new_path))
+    
+    # Check the result
+    tree = ET.parse(test_xml_path)
+    channel = tree.getroot().find('channel')
+    items = channel.findall('item')
+    
+    ## Check if the number of item is correct
+    assert len(items) == nb_item_new-nb_item
+    ## Check the attribut on the first item
+    assert items[0].get('post') == 'yes'
+    ## Check each title
+    for i in range(len(items)):
+        title = items[i].find('title')
+        assert title.text == "Title "+str(nb_item_new-i)
+        
+           
+    # Test with same items
+    nb_item = 2
+    build_xml(test_xml_path, nb_item)
+    build_xml(test_xml_new_path, nb_item)
+    rss_bot.xml_diff(test_xml_path, test_xml_new_path)
+    
+    tree = ET.parse(test_xml_path)
+    item = tree.getroot().find('channel').find('item')
+    assert item.get('post') == 'no'
+    
+    # Tests with no item
+    build_xml(test_xml_path,0)
+    build_xml(test_xml_new_path,1)
+    
+    rss_bot.xml_diff(test_xml_path,test_xml_new_path)
+    tree = ET.parse(test_xml_path)
+    channel = tree.getroot().find('channel')
+    items = channel.findall('item')
+    assert len(items) == 1
+    assert items[0].get('post') == 'yes'
+    
+    build_xml(test_xml_path,1)
+    build_xml(test_xml_new_path,0)
+    
+    rss_bot.xml_diff(test_xml_path,test_xml_new_path)
+    tree = ET.parse(test_xml_path)
+    channel = tree.getroot().find('channel')
+    items = channel.findall('item')
+    assert len(items) == 1
+    assert items[0].get('post') == 'no'

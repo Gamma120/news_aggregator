@@ -1,13 +1,13 @@
 import pytest
+import os
 from RSS_Bot import *
 from logging import getLogger
-from Logger import set_logger
+from utils import *
 
-PRJCT_TEST_SRC = PRJCT_DIR+r'\src\tests_src'
 
 @pytest.fixture(autouse=True)
 def setup_function():
-    path_log = PRJCT_TMP+r'\Test_RSS_Bot.log'   
+    path_log = os.path.join(PRJCT_TMP,'Test_RSS_Bot.log')   
     # Create logger
     set_logger('Test_RSS_Bot', path_log, 'w')
 
@@ -17,7 +17,7 @@ def test_logger():
     Test the logger
     """
     logger = getLogger('Test_RSS_Bot')
-    path_log = PRJCT_TMP+r'\Test_RSS_Bot.log'
+    path_log = os.path.join(PRJCT_TMP,'Test_RSS_Bot.log')
     
     info_log = "Info message."
     logger.info(info_log)
@@ -43,10 +43,10 @@ def test_fetch(): # may fail with pytest
     Test RSS_Bot.fetch()
     """
 
-    path_log = PRJCT_TMP+r'\Test_RSS_Bot.log'
+    path_log = os.path.join(PRJCT_TMP,'Test_RSS_Bot.log')
     rss_bot = RSS_Bot()
     # path to source file (test_rss_sources.txt)
-    test_rss_sources_path = PRJCT_TEST_SRC+r'\test_rss_sources.txt'
+    test_rss_sources_path = os.path.join(PRJCT_TEST_SRC,'test_rss_sources.txt')
     
     # Run tested function, result in tmp directory
     rss_bot.fetch(test_rss_sources_path, PRJCT_TMP)
@@ -61,7 +61,7 @@ def test_fetch(): # may fail with pytest
         log_line = test_rss_sources_file.readline()
         file_name = log_line.split(';')[1].strip('\n')
         # Test existence
-        assert(os.path.exists(PRJCT_TMP+file_name))
+        assert(os.path.exists(os.path.join(PRJCT_TMP,file_name)))
     except FileNotFoundError as e:
         print(e)
         
@@ -69,7 +69,7 @@ def test_fetch(): # may fail with pytest
     ## Compare log level between Test_RSS_Bot.log and test_fetch_res.txt
     try:
         log_file = open(path_log,'r')
-        res_file = open(PRJCT_TEST_SRC+r'\test_fetch_res.txt','r')
+        res_file = open(os.path.join(PRJCT_TEST_SRC,'test_fetch_res.txt'),'r')
     except FileNotFoundError as e:
         print(e)
     else :
@@ -86,7 +86,7 @@ def test_fetch(): # may fail with pytest
     # Rerun fetch to assert the creation of .new
     rss_bot.fetch(test_rss_sources_path, PRJCT_TMP)
     # Test existence
-    assert(os.path.exists(PRJCT_TMP+file_name+'.new'))
+    assert(os.path.exists(os.path.join(PRJCT_TMP,file_name+'.new')))
     
 def build_xml(file_path: str, nb_item: int):
     """
@@ -113,8 +113,8 @@ def test_xml_diff():
     """
     
     # Path for the tmp xml files
-    test_xml_path = PRJCT_TMP+r'\test_xml.xml'
-    test_xml_new_path = PRJCT_TMP+r'\test_xml_new.xml'
+    test_xml_path = os.path.join(PRJCT_TMP,'test_xml.xml')
+    test_xml_new_path = os.path.join(PRJCT_TMP,'test_xml_new.xml')
     
     # Build xml files
     nb_item = 2
@@ -137,12 +137,12 @@ def test_xml_diff():
     
     ## Check if the number of item is correct
     assert len(items) == nb_item_new-nb_item
-    ## Check the attribut on the first item
-    assert items[0].get('post') == 'yes'
     ## Check each title
     for i in range(len(items)):
         title = items[i].find('title')
         assert title.text == "Title "+str(nb_item_new-i)
+        ## Check the attribut on the first item
+        assert items[i].get('post') == 'yes'
         
            
     # Test with same items
@@ -152,8 +152,11 @@ def test_xml_diff():
     rss_bot.xml_diff(test_xml_path, test_xml_new_path)
     
     tree = ET.parse(test_xml_path)
-    item = tree.getroot().find('channel').find('item')
-    assert item.get('post') == 'no'
+    items = tree.getroot().find('channel').findall('item')
+    ## The file should be the same with attribut to not post
+    assert len(items) == 2
+    for item in items:
+        assert item.get('post') == 'no'
     
     # Tests with no item
     build_xml(test_xml_path,0)

@@ -4,13 +4,15 @@ from RSS_Bot import *
 from logging import getLogger
 from utils import *
 
-
 @pytest.fixture(autouse=True)
 def setup_function():
+    # Create directories
+    set_directories()
     path_log = os.path.join(PRJCT_TMP,'Test_RSS_Bot.log')   
     # Create logger
     set_logger('Test_RSS_Bot', path_log, 'w')
-
+    yield
+    logging.shutdown()
 
 def test_logger():
     """
@@ -38,7 +40,7 @@ def test_logger():
     except FileNotFoundError:
         print("[ERROR] File not found :", path_log)            
 
-def test_fetch(): # may fail with pytest
+def test_fetch():
     """
     Test RSS_Bot.fetch()
     """
@@ -67,6 +69,8 @@ def test_fetch(): # may fail with pytest
         
     # Verify the entries in the log file
     ## Compare log level between Test_RSS_Bot.log and test_fetch_res.txt
+    log_file=None
+    res_file=None
     try:
         log_file = open(path_log,'r')
         res_file = open(os.path.join(PRJCT_TEST_SRC,'test_fetch_res.txt'),'r')

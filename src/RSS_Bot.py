@@ -12,18 +12,10 @@ class RSS_Bot():
     
     def __init__(self):
         """
-        Initialise the logger and create log folder
+        Initialise the logger and create directories
         """
-        
-        # Create rss_src folder
-        if not os.path.exists(PRJCT_RSS):
-            os.mkdir(PRJCT_RSS)
-        # Create log folder
-        if not os.path.exists(PRJCT_LOGS):
-            os.mkdir(PRJCT_LOGS)
-        # Create tmp folder
-        if not os.path.exists(PRJCT_TMP):
-            os.mkdir(PRJCT_TMP)
+        # Create directories
+        set_directories()
         # path to RSS_Bot.log
         log_path = os.path.join(PRJCT_LOGS,'RSS_Bot.log')
         # Create logger

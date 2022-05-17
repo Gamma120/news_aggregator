@@ -10,7 +10,18 @@ PRJCT_TMP = os.path.join(PRJCT_DIR,'tmp')
 PRJCT_SRC = os.path.join(PRJCT_DIR,'src')
 PRJCT_TEST_SRC = os.path.join(PRJCT_SRC,'tests_src')
 
-    
+def set_directories():
+        # Create rss_src folder
+        if not os.path.exists(PRJCT_RSS):
+            os.mkdir(PRJCT_RSS)
+        # Create log folder
+        if not os.path.exists(PRJCT_LOGS):
+            os.mkdir(PRJCT_LOGS)
+        # Create tmp folder
+        if not os.path.exists(PRJCT_TMP):
+            os.mkdir(PRJCT_TMP)
+
+  
 def set_logger(logger_name, log_file, mode='a', level=logging.DEBUG):
     l = logging.getLogger(logger_name)
     format = '%(asctime)s - %(levelname)s - %(message)s'

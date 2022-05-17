@@ -24,13 +24,13 @@ python path/to/project_directory/src/RSS_bot.py
 
 ## TODO
 
-- make it a service
-- fork the fetch of xmls
-- cron
-- change rss_souces.txt to json
-- continuous integration (make pytest work)
-- make package
-- discord side
+- [ ] make it a service
+- [ ] fork the fetch of xmls
+- [ ] cron
+- [ ] change rss_souces.txt to json
+- [x] continuous integration
+- [ ] make package
+- [ ] discord side
 
 ## Future Features
 
@@ -39,5 +39,5 @@ python path/to/project_directory/src/RSS_bot.py
 - commands in discord to configure the bot (add new RSS flux, filters...)
 
 ## Why does this project exist?
-The motivation was to have a single place to gather everything I want to be up-to-date, on a tool that I use daily. It was first intended to track news but it can take advantage of any site that provide RSS flux, from new episodes on CrunchyRoll to latest package your favorite python library.
+The motivation was to have a single place to gather everything I want to be up-to-date, on a tool that I use daily. It was first intended to track news but it can take advantage of any site that provide RSS flux, from new episodes on CrunchyRoll to the latest package of your favorite python library.
 And last, because why not. Fun project to familiarise with python, git and everything in-between.

@@ -33,7 +33,7 @@ class RSS_Bot():
             # To keep track of the fetched files for future merge
             fetched_file = open(os.path.join(PRJCT_TMP,'fetched_files.txt'),'w')
             
-            logger.info("Begin fetching...")
+            logger.info("Begin fetch...")
             
             cpt_line = 1 # To track line number for easier error message
             for line in rss_sources:
@@ -83,6 +83,10 @@ class RSS_Bot():
 
 
     def xml_diff(self, xml_old: str, xml_new: str):
+        """
+        Create a RSS flux containing only items appearing in xml_new
+        """
+        
         logger = self.get_logger()
         
         # Parse the xml file into a tree
@@ -138,21 +142,46 @@ class RSS_Bot():
         os.remove(xml_new)
     
     def merge(self, fetched_files_path: str):
+        """
+        Merge old and new xml files
+
+        Args:
+            fetched_files_path (str): path to the file populated during fetch
+        """
+        
         logger = self.get_logger()
+        
+        # Read path of the most recent fetched files
         try:
             fetched_files = open(fetched_files_path,'r')
-            logger.info("Begin merging...")
+        except FileNotFoundError as e:
+            logger.error(e)
+        else:
+            logger.info("Begin merge...")
+            cpt_line=0 # for logging debug
             for line in fetched_files:
                 line = line.strip('\n')
                 line = line.split('.')
+                # if it's a .new file, call xml_diff
                 if len(line)==3 and line[2]=='new':
                     xml_old = line[0]+'.'+line[1]
                     xml_new = xml_old+'.'+line[2]
                     self.xml_diff(xml_old,xml_new)
+                # if it's a .xml file make items attribut post=yes
+                elif len(line)==2 and line[1]=='xml':
+                    xml_path = line[0]+'.'+line[1]
+                    if not os.path.exists(xml_path):
+                        logger.error("File not found: "+xml_path)
+                        logger.debug("File: "+fetched_files_path+', line '+str(cpt_line))
+                    tree = ET.parse(xml_path)
+                    root = tree.getroot()
+                    channel = root.find('channel')
+                    for item in channel.findall('item'):
+                        item.set('post','yes')
+                    tree.write(xml_path)
+                cpt_line+=1
             fetched_files.close()
             logger.info("Merge completed.")
-        except FileNotFoundError as e:
-            logger.error(e)
             
     def get_logger(self):
         # Change the logger if it's a test

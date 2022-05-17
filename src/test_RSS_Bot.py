@@ -182,3 +182,34 @@ def test_xml_diff():
     items = channel.findall('item')
     assert len(items) == 1
     assert items[0].get('post') == 'no'
+
+def test_merge():
+    """ 
+    Test RSS_Bot.merge()
+    """
+    
+    test_xml_path = os.path.join(PRJCT_TMP,'test_xml.xml')
+    test_xml_new_path = os.path.join(PRJCT_TMP,'test_xml_new.xml')
+    
+    # Test with only one file
+    ## Create the xml to test
+    build_xml(test_xml_path,2)
+    ## Simulate the inscription of it fetch in the fetched file
+    fetched_path = os.path.join(PRJCT_TMP,'test_fetched_file.txt')
+    try:
+        fetched_file = open(fetched_path,'w')
+        fetched_file.write(test_xml_path)
+        fetched_file.close()
+    except FileNotFoundError as e:
+        print(e)
+    else:
+        ## Run tested function
+        rss_bot = RSS_Bot()
+        rss_bot.merge(fetched_path)
+        
+        ## Verify attributs of items
+        tree = ET.parse(test_xml_path)
+        channel = tree.getroot().find('channel')
+        for item in channel.findall('item'):
+            assert item.get('post') == 'yes'
+    

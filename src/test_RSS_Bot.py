@@ -1,6 +1,6 @@
 import pytest
 import os
-from RSS_Bot import *
+from rss_bot import *
 from logging import getLogger
 from utils import *
 

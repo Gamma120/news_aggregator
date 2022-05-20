@@ -12,29 +12,39 @@ The goal is to **feed a discord channel/server of news from a cutomisable list o
 # Uncomment the line below to test
 # https://fin-du-game.lepodcast.fr/rss;fin-du-game.xml
 ```
+**Step 2:** create a [discord bot](https://discordpy.readthedocs.io/en/stable/discord.html)
 
-**Step 2:** run 
-```python 
-python path/to/project_directory/src/RSS_bot.py
+**Step 3:** add your bot token to [discord bot](./src/discord_bot.py)
+```python
+client.run('your token')
 ```
 
-**Step 3:** ???
+**Step 4:** install dependencies
+```bash
+pip install -r path/to/project_directory/requierment.txt
+```
 
-**Step 4:** currently just downloading the xml, nothing more
+**Step 5:** run 
+```bash 
+python path/to/project_directory/src/rss_bot.py
+python path/to/project_directory/src/discord_bot.py
+```
+
+**Step 4:** currently just downloading the xml, discord bot responding to `$hello`
 
 ## TODO
 
 - [ ] make it a service
 - [ ] fork the fetch of xmls
 - [ ] cron
-- [ ] change rss_souces.txt to json
+- [ ] add sql database
 - [x] continuous integration
 - [ ] make package
-- [ ] discord side
+- [ ] discord commands
 
 ## Future Features
 
-- customize the update of each source
+- customize the update time of each source
 - add keywords, used as filters to only post what relevant for you
 - commands in discord to configure the bot (add new RSS flux, filters...)
 

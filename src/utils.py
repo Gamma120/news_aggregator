@@ -1,14 +1,15 @@
 import logging
 import os
 
-# TODO : make path Linux compatible
 
 PRJCT_DIR = os.getcwd() # FIXME : maybe broken if not executed in the right folder
 PRJCT_LOGS = os.path.join(PRJCT_DIR,'logs')
 PRJCT_RSS = os.path.join(PRJCT_DIR,'rss_src')
 PRJCT_TMP = os.path.join(PRJCT_DIR,'tmp')
 PRJCT_SRC = os.path.join(PRJCT_DIR,'src')
-PRJCT_TEST_SRC = os.path.join(PRJCT_SRC,'tests_src')
+PRJCT_TEST = os.path.join(PRJCT_DIR,'tests')
+PRJCT_TEST_SRC = os.path.join(PRJCT_TEST,'tests_src')
+PRJCT_DB = os.path.join(PRJCT_DIR,'database')
 
 def set_directories():
         # Create rss_src folder
@@ -20,6 +21,9 @@ def set_directories():
         # Create tmp folder
         if not os.path.exists(PRJCT_TMP):
             os.mkdir(PRJCT_TMP)
+        # Create database folder
+        if not os.path.exists(PRJCT_DB):
+            os.mkdir(PRJCT_DB)
 
   
 def set_logger(logger_name, log_file, mode='a', level=logging.DEBUG):
@@ -33,4 +37,5 @@ def set_logger(logger_name, log_file, mode='a', level=logging.DEBUG):
     l.setLevel(level)
     l.addHandler(fileHandler)
     
-# TODO : create xml item
+def nametofile(name: str) -> str:
+    return "".join(x for x in name if x.isalnum() or x in "_-").lower()

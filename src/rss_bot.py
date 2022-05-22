@@ -1,7 +1,7 @@
 import os
 import requests
 from logging import getLogger
-from utils import *
+from .utils import *
 import xml.etree.ElementTree as ET
 
 

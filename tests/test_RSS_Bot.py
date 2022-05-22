@@ -1,16 +1,16 @@
 import pytest
 import os
-from rss_bot import *
+from src.rss_bot import *
 from logging import getLogger
-from utils import *
+from src.utils import *
 
 @pytest.fixture(autouse=True)
 def setup_function():
     # Create directories
     set_directories()
-    path_log = os.path.join(PRJCT_TMP,'Test_RSS_Bot.log')   
+    path_log = os.path.join(PRJCT_TMP,'Test.log')   
     # Create logger
-    set_logger('Test_RSS_Bot', path_log, 'w')
+    set_logger('Test', path_log, 'w')
     yield
     logging.shutdown()
 
@@ -18,13 +18,13 @@ def test_logger():
     """
     Test the logger
     """
-    logger = getLogger('Test_RSS_Bot')
-    path_log = os.path.join(PRJCT_TMP,'Test_RSS_Bot.log')
+    logger = getLogger('Test')
+    path_log = os.path.join(PRJCT_TMP,'Test.log')
     
     info_log = "Info message."
     logger.info(info_log)
 
-    # Open Test_RSS_Bot.log    
+    # Open Test.log    
     try:
         log_file = open(path_log,'r')
         # Read the last line
@@ -45,7 +45,7 @@ def test_fetch():
     Test RSS_Bot.fetch()
     """
 
-    path_log = os.path.join(PRJCT_TMP,'Test_RSS_Bot.log')
+    path_log = os.path.join(PRJCT_TMP,'Test.log')
     rss_bot = RSS_Bot()
     # path to source file (test_rss_sources.txt)
     test_rss_sources_path = os.path.join(PRJCT_TEST_SRC,'test_rss_sources.txt')
@@ -68,7 +68,7 @@ def test_fetch():
         print(e)
         
     # Verify the entries in the log file
-    ## Compare log level between Test_RSS_Bot.log and test_fetch_res.txt
+    ## Compare log level between Test.log and test_fetch_res.txt
     log_file=None
     res_file=None
     try:

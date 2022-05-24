@@ -25,9 +25,9 @@ def setup_function():
 
 @pytest.fixture()
 def rss_dicts() -> list[dict]:
-    dict_1 = {'name': 'test_name_1', 'url': 'test_url_1', 'channel': 'test_channel', 'update_rate': timedelta(seconds=1)}
-    dict_2 = {'name': 'test_name_2', 'url': 'test_url_2', 'channel': 'test_channel', 'update_rate': timedelta(seconds=5)}
-    dict_3 = {'name': 'test_name_3', 'url': 'test_url_1', 'channel': 'test_channel_2', 'update_rate': timedelta(hours=1)}
+    dict_1 = {'name': 'test_name_1', 'url': 'test_url_1', 'channel': 'test_channel', 'update_rate': timedelta_to_int(timedelta(seconds=1))}
+    dict_2 = {'name': 'test_name_2', 'url': 'test_url_2', 'channel': 'test_channel', 'update_rate': timedelta_to_int(timedelta(seconds=5))}
+    dict_3 = {'name': 'test_name_3', 'url': 'test_url_1', 'channel': 'test_channel_2', 'update_rate': timedelta_to_int(timedelta(hours=1))}
     return dict_1, dict_2, dict_3
     
 def test_init():
@@ -84,7 +84,7 @@ def test_remove_rss_flux(rss_dicts):
     db = Database(db_path)
     
     # Test the supression of a row in a table of one
-    rss_dict = {'name': 'test_name', 'url': 'test_url', 'channel': 'test_channel', 'update_rate': timedelta(hours=1)}
+    rss_dict = {'name': 'test_name', 'url': 'test_url', 'channel': 'test_channel', 'update_rate': timedelta_to_int(timedelta(hours=1))}
     db.add_rss_flux(rss_dict)
     db.remove_rss_flux('test_name', 'test_channel')
     rss_list = db.get_rss_flux_list()
@@ -129,12 +129,12 @@ def test_edit_rss_flux(rss_dicts):
     rss_dict = rss_dicts[0]
     db.add_rss_flux(rss_dict)
     # Test : edit row in rss_flux
-    db.edit_rss_flux('test_name_1', 'test_channel', {'channel': 'test_channel_edit', 'url': 'test_url_edit', 'update_rate': timedelta(days=2)})
+    db.edit_rss_flux('test_name_1', 'test_channel', {'channel': 'test_channel_edit', 'url': 'test_url_edit', 'update_rate': timedelta_to_int(timedelta(days=2))})
     ## update the channel in the old copy for accurate result from get_rss_row
     rss_dict.update({'channel': 'test_channel_edit'})
     rss_dict_res = db.get_rss_row(rss_dict)
     ## the answer
-    rss_dict_ans = {'id': 1, 'name': 'test_name_1', 'file_name': 'test_name_1.xml', 'url': 'test_url_edit', 'channel': 'test_channel_edit', 'last_item': None, 'last_time_fetched': None, 'update_rate': timedelta(days=2)}
+    rss_dict_ans = {'id': 1, 'name': 'test_name_1', 'file_name': 'test_name_1.xml', 'url': 'test_url_edit', 'channel': 'test_channel_edit', 'last_item': None, 'last_time_fetched': None, 'update_rate': timedelta_to_int(timedelta(days=2))}
     for key in rss_dict_ans.keys(): # assumption: same keys between dictionnaries
         assert rss_dict_res[key] == rss_dict_ans[key]
 
@@ -163,7 +163,9 @@ def test_to_fetch(rss_dicts):
     
     # Test where only the first should be in the list
     ## Edit entries last_time_fetch to change behaviour
-    now = datetime.now()
+    now = date_to_int(datetime.utcnow())
+    ## Update old entry to become answer
+    rss_dict_1.update({'last_time_fetched': now})
     db.edit_rss_flux('test_name_1','test_channel',{'last_time_fetched': now})
     db.edit_rss_flux('test_name_2','test_channel',{'last_time_fetched': now})
     sleep(2)

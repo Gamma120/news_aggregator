@@ -1,6 +1,6 @@
 import logging
 import os
-
+from datetime import timedelta, datetime
 
 PRJCT_DIR = os.getcwd() # FIXME : maybe broken if not executed in the right folder
 PRJCT_LOGS = os.path.join(PRJCT_DIR,'logs')
@@ -37,5 +37,11 @@ def set_logger(logger_name, log_file, mode='a', level=logging.DEBUG):
     l.setLevel(level)
     l.addHandler(fileHandler)
     
-def nametofile(name: str) -> str:
-    return "".join(x for x in name if x.isalnum() or x in "_-").lower()
+def name_to_file(name: str) -> str:
+    return "".join(x for x in name if x.isalnum() or x in " _-").lower().replace(' ','_')
+
+def date_to_int(date: datetime) -> int:
+    return date.timestamp()
+
+def timedelta_to_int(delta: timedelta) -> int:
+    return delta.total_seconds()

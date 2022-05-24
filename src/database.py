@@ -24,8 +24,8 @@ class Database():
                          Column('url', String, nullable=False),
                          Column('channel', String, nullable=False),
                          Column('last_item', String),
-                         Column('last_time_fetched', DateTime),
-                         Column('update_rate', Interval),
+                         Column('last_time_fetched', FLOAT),
+                         Column('update_rate', FLOAT),
                          UniqueConstraint('name', 'channel'))
         
         channels_filters = Table('channels_filters', self.meta,
@@ -73,7 +73,7 @@ class Database():
         with self.engine.connect() as conn:
             rss_flux = self.get_table('rss_flux')
             ins = rss_flux.insert().values(name = rss_dict.get('name'),
-                                        file_name = nametofile(rss_dict.get('name'))+'.xml',
+                                        file_name = name_to_file(rss_dict.get('name'))+'.xml',
                                         url = rss_dict.get('url'),
                                         channel = rss_dict.get('channel'),
                                         last_time_fetched = rss_dict.get('last_time_fetched'),
@@ -113,13 +113,13 @@ class Database():
         """
         return a list of rss flux that need to be fetched
         """
-        now = datetime.now()
+        now = date_to_int(datetime.utcnow())
         with self.engine.connect() as conn:
             rss_flux =  self.get_table('rss_flux')
             ins = rss_flux.select().where(or_(
                 rss_flux.c.last_time_fetched == None,
                 rss_flux.c.update_rate == None,
-                rss_flux.c.last_time_fetched >= now)
+                rss_flux.c.last_time_fetched + rss_flux.c.update_rate <= now)
             )
             res = conn.execute(ins)
             rows_list = []

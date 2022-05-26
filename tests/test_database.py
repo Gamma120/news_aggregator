@@ -173,3 +173,28 @@ def test_to_fetch(rss_dicts):
     assert len(fetch_list) == 1
     for key in rss_dict_1.keys(): # assumption: same keys between dictionnaries
         assert fetch_list[0][key] == rss_dict_1[key]
+        
+def test_valid_line():
+    db = Database(db_path)
+    
+    line_1 = "test_name;https://test.com"
+    assert db.valid_line(line_1,"test_path",0) == True
+    
+    line_2 = "# comment"
+    assert db.valid_line(line_2,"test_path",0) == False
+    
+    line_3 = ";"
+    assert db.valid_line(line_3,"test_path",0) == False
+    
+    line_4 = "test_name"
+    assert db.valid_line(line_4,"test_path",0) == False
+
+def test_import_list():
+    db = Database(db_path)
+    
+    src_path = os.path.join(PRJCT_TEST_SRC,"test_rss_sources.txt")
+    db.import_list(src_path, "test_channel")
+    rss_list = db.get_rss_flux_list()
+    assert len(rss_list) == 3
+    assert rss_list == ["Google index","Google idex","zafeazhkf"]
+    

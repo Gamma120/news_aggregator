@@ -1,17 +1,17 @@
 # OK
-https://www.google.com/index.html;google_index.html
+Google index;https://www.google.com/index.html
 
 # - WARNING - Unable to fetch data
-https://www.google.com/ndex.html;google_index.html
+Google idex;https://www.google.com/ndex.html
 
 # - ERROR - ConnexionError
-https://www.azertyuiopqsdfghjklm.com/azertyuiopqsdfghjklm.html;google_index.html
+zafeazhkf;https://www.azertyuiopqsdfghjklm.com/azertyuiopqsdfghjklm.html
 
 # - ERROR - Formatting
-https://www.google.com/index.html;
+Google index;
 
 # - ERROR - Formatting
-;google_index.html
+;https://google_index.html
 
 # - ERROR - Formatting
 https://www.google.com/index.html

@@ -1,6 +1,8 @@
 from time import sleep
-from src.utils import *
 from datetime import datetime,timedelta,timezone
+
+from src.utils import *
+
 
 def test_name_to_file():
     string_1 = "String0 String-String_String\n"

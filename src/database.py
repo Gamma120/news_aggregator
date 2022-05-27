@@ -3,8 +3,6 @@ from datetime import datetime
 from .utils import *
 
 
-# FIXME: logger
-
 class Database():
     
     def __init__(self, db_path: str):
@@ -79,7 +77,7 @@ class Database():
         table = self.get_table(table_name)
         return table.columns.keys() 
            
-    def add_rss_flux(self, rss_dict: dict): # TODO : add multiple rss_flux
+    def add_rss_flux(self, rss_dict: dict, channel: str = None):
         """
         Add a new row in the table rss_flux,
         trigger by the discord command $add_rss
@@ -89,7 +87,7 @@ class Database():
             ins = rss_flux.insert().values(name = rss_dict.get('name'),
                                         file_name = name_to_file(rss_dict.get('name'))+'.xml',
                                         url = rss_dict.get('url'),
-                                        channel = rss_dict.get('channel'),
+                                        channel = (rss_dict.get('channel') if rss_dict.get('channel')!=None else channel),
                                         last_time_fetched = rss_dict.get('last_time_fetched'),
                                         update_rate = rss_dict.get('update_rate'))
             res = conn.execute(ins)

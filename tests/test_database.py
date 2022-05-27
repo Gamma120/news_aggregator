@@ -2,8 +2,9 @@ from datetime import datetime
 from time import sleep
 import pytest
 import os
-from src.database import *
 from logging import getLogger
+
+from src.database import *
 from src.utils import *
 
 db_path = os.path.join(PRJCT_TMP,'test.db')
@@ -26,7 +27,7 @@ def setup_function():
 @pytest.fixture()
 def rss_dicts() -> list[dict]:
     dict_1 = {'name': 'test_name_1', 'url': 'test_url_1', 'channel': 'test_channel', 'update_rate': timedelta_to_int(timedelta(seconds=1))}
-    dict_2 = {'name': 'test_name_2', 'url': 'test_url_2', 'channel': 'test_channel', 'update_rate': timedelta_to_int(timedelta(seconds=5))}
+    dict_2 = {'name': 'test_name_2', 'url': 'test_url_2', 'update_rate': timedelta_to_int(timedelta(seconds=5))}
     dict_3 = {'name': 'test_name_3', 'url': 'test_url_1', 'channel': 'test_channel_2', 'update_rate': timedelta_to_int(timedelta(hours=1))}
     return dict_1, dict_2, dict_3
     
@@ -65,16 +66,19 @@ def test_add_rss_flux(rss_dicts):
     
     db = Database(db_path)
     # Test: add a first entry
-    db.add_rss_flux(rss_dicts[0])
-    rss_list = db.get_rss_flux_list()
-    assert len(rss_list) == 1
-    assert rss_list == ['test_name_1']
+    db.add_rss_flux(rss_dicts[0], 'arg_channel')
+    rss_flux = db.get_rss_row({'name': 'test_name_1', 'channel': 'test_channel'})
+    assert len(rss_flux) == 8
+    assert rss_flux['channel'] == 'test_channel'
     
-    # Test: add a second entry
-    db.add_rss_flux(rss_dicts[1])
+    # Test: add a second entry with channel=None
+    db.add_rss_flux(rss_dicts[1], 'arg_channel')
     rss_list = db.get_rss_flux_list()
     assert len(rss_list) == 2
     assert rss_list == ['test_name_1', 'test_name_2']
+    ## check the name of the channel
+    rss_flux = db.get_rss_row({'name': 'test_name_2', 'channel': 'arg_channel'})
+    assert rss_flux['channel'] == 'arg_channel'
 
 def test_remove_rss_flux(rss_dicts):
     """
@@ -92,7 +96,7 @@ def test_remove_rss_flux(rss_dicts):
     
     # Test the supression of a row in a table with multiple rows
     db.add_rss_flux(rss_dicts[0])
-    db.add_rss_flux(rss_dicts[1])
+    db.add_rss_flux(rss_dicts[1], 'test_channel')
     db.add_rss_flux(rss_dicts[2])
     db.remove_rss_flux('test_name_2', 'test_channel')
     rss_list = db.get_rss_flux_list()
@@ -109,12 +113,12 @@ def test_get_row(rss_dicts):
     rss_dict_1 = rss_dicts[0]
     rss_dict_2 = rss_dicts[1]
     db.add_rss_flux(rss_dict_1)
-    db.add_rss_flux(rss_dict_2)
+    db.add_rss_flux(rss_dict_2, 'arg_channel')
     # Test: get the rows
+    rss_dict_1.update({'id': 1, 'last_time_fetched': None, 'file_name': 'test_name_1.xml', 'last_item': None})
+    rss_dict_2.update({'id': 2, 'channel': 'arg_channel', 'last_time_fetched': None, 'file_name': 'test_name_2.xml', 'last_item': None})
     rss_dict_1_res = db.get_rss_row(rss_dict_1)
     rss_dict_2_res = db.get_rss_row(rss_dict_2)
-    rss_dict_1.update({'id': 1, 'last_time_fetched': None, 'file_name': 'test_name_1.xml', 'last_item': None})
-    rss_dict_2.update({'id': 2, 'last_time_fetched': None, 'file_name': 'test_name_2.xml', 'last_item': None})
     for key in rss_dict_1.keys(): # assumption: same keys between dictionnaries
         assert rss_dict_1_res[key] == rss_dict_1[key]
         assert rss_dict_2_res[key] == rss_dict_2[key]
@@ -148,10 +152,10 @@ def test_to_fetch(rss_dicts):
     rss_dict_2 = rss_dicts[1]
     # Test where both should be in the list, because last_time_fetched is None
     db.add_rss_flux(rss_dict_1)
-    db.add_rss_flux(rss_dict_2)
+    db.add_rss_flux(rss_dict_2, "test_channel")
     ## update old entries to become answers 
     rss_dict_1.update({'id': 1, 'file_name': 'test_name_1.xml', 'last_item':None, 'last_time_fetched':None})
-    rss_dict_2.update({'id': 2, 'file_name': 'test_name_2.xml', 'last_item':None, 'last_time_fetched':None})
+    rss_dict_2.update({'id': 2, 'channel': 'test_channel', 'file_name': 'test_name_2.xml', 'last_item':None, 'last_time_fetched':None})
     ## sleep 2 seconds > to timedelta of first row,
     ## but < to timedelta of seconde row
     sleep(2)

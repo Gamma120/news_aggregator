@@ -1,8 +1,10 @@
 import pytest
 import os
-from src.database import Database
-from src.rss_bot import *
 from logging import getLogger
+import xml.etree.ElementTree as ET
+
+from src.database import Database
+from src.rss_bot import RSS_Bot
 from src.utils import *
 
 db_path = os.path.join(PRJCT_TMP,'test.db')

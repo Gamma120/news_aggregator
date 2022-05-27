@@ -1,9 +1,9 @@
 import os
 import requests
 from logging import getLogger
-from .utils import *
 import xml.etree.ElementTree as ET
 
+from .utils import *
 
 class RSS_Bot():
     """
@@ -93,6 +93,7 @@ class RSS_Bot():
                 # Replace file
                 tree.write(xml_path)
     
+    # TODO : no longer relevant
     def get_logger(self):
         # Change the logger if it's a test
         if __name__ != '__main__':

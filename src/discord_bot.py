@@ -12,13 +12,46 @@ db = Database(db_path)
 async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
 
+@bot.command(name='show_rss',
+             description='Show all subscribed rss flux of the channel')
+async def show_rss(ctx):
+    # Get list
+    channel = ctx.channel
+    rss_list = db.get_rss_flux_list(channel.id)
+    
+    # Construct the message
+    if len(rss_list) == 0:
+        message="No active RSS flux in this channel. Add one with `$add_rss` command."
+    else:
+        message="Currently active RSS flux in this channel:\n```"
+        for rss_flux in rss_list:
+            message+=f"{rss_flux}\n"
+        message+="```For more information on a RSS flux, type `$info <flux_name>`."
+    await ctx.send(message)
+
+
 @bot.command(name='add_rss',
              description='Add rss flux from argument',
              usage='<flux_name> <url> [<channel>] [<update rate>]',
              help='If the channel is not provided, it will be the one the command was invoke in.\n'
              'Update rate format : XdXhXm')
-async def add_rss(ctx, args):
+async def add_rss(ctx, flux_name: str, url: str, *args : str):
     channel = ctx.channel
+    # TODO : handle the others args
+    channel_id = channel.id
+    rss_flux = {'name': flux_name, 'url':url}
+    # dattabase should raise errors and be handled here
+    db.add_rss_flux(rss_flux, channel_id)
+    await ctx.send(f"{flux_name} added to {channel.name}.")
+
+@bot.command(name='remove_rss',
+             description='Remove rss flux form argument',
+             usage='<flux_name>')
+async def remove_rss(ctx, flux_name: str):
+    channel = ctx.channel
+    channel_id = channel.id
+    db.remove_rss_flux(flux_name,channel_id)
+    await ctx.send(f"{flux_name} remove from {channel.name}.")
 
 @bot.command(name='import',
              description='Add rss flux from file in argument.',

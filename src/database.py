@@ -63,10 +63,15 @@ class Database():
             assert len(row) == 1
             return row[0]
       
-    def get_rss_flux_list(self) -> list:
+    def get_rss_flux_list(self, channel: str = None) -> list:
         with self.engine.connect() as conn:
             rss_flux = self.get_table('rss_flux')
-            select = rss_flux.select()
+            if(channel!=None):
+                select = rss_flux.select().where(
+                    rss_flux.c.channel == channel
+                )
+            else:
+                select = rss_flux.select()
             res = conn.execute(select)
             return [_row.name for _row in res]
     
@@ -98,7 +103,7 @@ class Database():
         Remove a row in the table rss_flux,
         trigger by the discord command $remove_rss
         """
-        
+        # TODO : should raise error when it doesn't exist
         with self.engine.connect() as conn:
             rss_flux = self.get_table('rss_flux')
             ins = rss_flux.delete().where(and_(

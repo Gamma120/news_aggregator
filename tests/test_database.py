@@ -103,6 +103,23 @@ def test_remove_rss_flux(rss_dicts):
     assert len(rss_list) == 2
     assert rss_list == ['test_name_1', 'test_name_3']
 
+def test_get_rss_list(rss_dicts):
+    db = Database(db_path)
+    
+    # Populate database
+    db.add_rss_flux(rss_dicts[0])
+    db.add_rss_flux(rss_dicts[1], 'test_channel')
+    db.add_rss_flux(rss_dicts[2])
+    
+    # Get all entries with channel=test_channel
+    rss_list = db.get_rss_flux_list('test_channel')
+    assert len(rss_list) == 2
+    assert rss_list == ['test_name_1', 'test_name_2']
+    
+    # Get all entries in the table rss_flux 
+    rss_list_all = db.get_rss_flux_list()
+    assert len(rss_list_all) == 3
+    
 def test_get_row(rss_dicts):
     """
     Test to get a row from name and channel columns

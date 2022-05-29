@@ -93,6 +93,39 @@ class RSS_Bot():
                 # Replace file
                 tree.write(xml_path)
     
+    def get_items(self, xml_path: str) -> list[dict]:
+        """
+        Format items in xml file to a list of dictionnaries
+
+        Args:
+            xml_path (str): path to the xml file
+
+        Returns:
+            list[dict]: list of items in dictionnary\n
+            example : [{title:'title',url:'url'}]
+        """
+        
+        logger = self.get_logger()
+        
+        try:
+            tree = ET.parse(xml_path)
+            root = tree.getroot()
+        except ET.ParseError as e: # catch if the file is not in xml format
+            logger.error(e)
+        else:
+            channel = root.find('channel')
+            items_list = []
+            items = channel.findall('item')
+            for item in items:
+                item_dict = {}
+                for child in item:
+                    if child.tag in "title|description|link":
+                        if child.text != None:
+                            item_dict[child.tag] = child.text
+                items_list.append(item_dict)
+            return items_list
+        
+
     # TODO : no longer relevant
     def get_logger(self):
         # Change the logger if it's a test

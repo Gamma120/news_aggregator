@@ -156,3 +156,26 @@ def test_xml_strip():
     channel = tree.getroot().find('channel')
     items = channel.findall('item')
     assert len(items) == 1
+
+def test_get_items():
+    """
+    Test RSS_Bot.get_items()
+    """
+    
+    # Path for the tmp xml files
+    test_xml_path = os.path.join(PRJCT_TMP,'test_xml.xml')
+    
+    # Build xml files
+    nb_item = 4
+    build_xml(test_xml_path, nb_item)
+    
+    rss_bot = RSS_Bot()
+    # Tested function
+    items_list = rss_bot.get_items(test_xml_path)
+    assert len(items_list) == 4
+    i = 0
+    for item in items_list:
+        assert item['title'] == 'Title '+str(nb_item-i)
+        assert item['link'] == 'https://example.com'
+        assert item['description'] == 'Description of item '+str(nb_item-i)
+        i+=1

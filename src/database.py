@@ -1,6 +1,7 @@
 from sqlalchemy import *
 from datetime import datetime
-from .utils import *
+
+from src.utils import *
 
 
 class Database():

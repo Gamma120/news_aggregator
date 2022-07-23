@@ -3,7 +3,7 @@ import requests
 from logging import getLogger
 import xml.etree.ElementTree as ET
 
-from .utils import *
+from src.utils import *
 
 class RSS_Bot():
     """

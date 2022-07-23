@@ -1,13 +1,13 @@
-from ast import literal_eval
+import os
 from discord.ext import commands
-from os import path
+from ast import literal_eval
 
-from utils import *
-from rss_bot import RSS_Bot
-from database import Database
+from src.utils import *
+from src.rss_bot import RSS_Bot
+from src.database import Database
 
 bot = commands.Bot(command_prefix='$', help_command=None)
-db_path = path.join(PRJCT_DB,'news_aggregator.db')
+db_path = os.path.join(PRJCT_DB,'news_aggregator.db')
 db = Database(db_path)
 rss_bot = RSS_Bot()
     
@@ -122,7 +122,7 @@ async def update(ctx):
     fetched_list = rss_bot.fetch(to_fetch_list, PRJCT_RSS)
     now = date_to_int(datetime.utcnow())
     for rss in fetched_list:
-        xml_path = path.join(PRJCT_RSS,rss['file_name'])
+        xml_path = os.path.join(PRJCT_RSS,rss['file_name'])
         stop_title = rss['last_item']
         channel = bot.get_channel(int(rss['channel']))
         rss_bot.xml_strip(xml_path, stop_title)
@@ -192,6 +192,6 @@ async def echo(ctx,*args):
     await ctx.send(arguments)
     
       
-if __name__ == "__main__":
+def run():
     set_directories()
     bot.run('')

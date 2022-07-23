@@ -1,5 +1,5 @@
-import logging
 import os
+import logging
 from datetime import timedelta, datetime
 
 PRJCT_DIR = os.getcwd() # FIXME : maybe broken if not executed in the right folder

@@ -4,49 +4,42 @@ The goal is to **feed a discord channel/server of news from a cutomisable list o
 
 ## Usage
 
-**Step 1:** populate [RSS sources](./rss_sources.txt) with links to xml sources and names for the files
+**Step 1:** create a [discord bot](https://discordpy.readthedocs.io/en/stable/discord.html) and add it to your discord server
+
+**Step 2:** add your bot token to [discord bot](./src/discord_bot.py)
+```python
+client.run('your token')
+```
+
+**Step 3:** install dependencies (maybe in a [virtual environnement](https://docs.python.org/3/library/venv.html))
+```bash
+pip install -r path/to/project_directory/requierment.txt
+```
+
+**Step 4:** run 
+```bash 
+cd path/to/project_directory/
+python main.py
+```
+
+Your bot should be now connected in discord.
+
+**Step 5:**
+- `$help` to see the commandes. 
+- `$add_rss <flux_name> <url>` to add your first RSS flux
+
+**Step 5 (alternative in futur release):** populate [RSS sources](./rss_sources.txt) with links to xml sources and names for the flux
 
 ```
 # Add URLs of files from sites you want to fetch
 # Split URL and file name by ;
 # Uncomment the line below to test
-# https://fin-du-game.lepodcast.fr/rss;fin-du-game.xml
-```
-**Step 2:** create a [discord bot](https://discordpy.readthedocs.io/en/stable/discord.html)
-
-**Step 3:** add your bot token to [discord bot](./src/discord_bot.py)
-```python
-client.run('your token')
+# Fin du Game;https://fin-du-game.lepodcast.fr/rss
 ```
 
-**Step 4:** install dependencies
-```bash
-pip install -r path/to/project_directory/requierment.txt
-```
+`$add_rss <file_name>` to add RSS flux in the file
 
-**Step 5:** run 
-```bash 
-python path/to/project_directory/src/rss_bot.py
-python path/to/project_directory/src/discord_bot.py
-```
-
-**Step 4:** currently just downloading the xml, discord bot responding to `$hello`
-
-## TODO
-
-- [ ] make it a service
-- [ ] fork the fetch of xmls
-- [ ] cron
-- [ ] add sql database
-- [x] continuous integration
-- [ ] make package
-- [ ] discord commands
-
-## Future Features
-
-- customize the update time of each source
-- add keywords, used as filters to only post what relevant for you
-- commands in discord to configure the bot (add new RSS flux, filters...)
+**Step 6:** `$update`
 
 ## Why does this project exist?
 The motivation was to have a single place to gather everything I want to be up-to-date, on a tool that I use daily. It was first intended to track news but it can take advantage of any site that provide RSS flux, from new episodes on CrunchyRoll to the latest package of your favorite python library.

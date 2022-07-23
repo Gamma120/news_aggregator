@@ -1,4 +1,4 @@
 # Add URLs of files from sites you want to fetch
 # Split URL and file name by ;
 # Uncomment the line below to test
-# https://fin-du-game.lepodcast.fr/rss;fin-du-game.xml
+# Fin du Game;https://fin-du-game.lepodcast.fr/rss

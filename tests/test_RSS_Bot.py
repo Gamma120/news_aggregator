@@ -8,13 +8,15 @@ from src.rss_bot import RSS_Bot
 from src.utils import *
 
 db_path = os.path.join(PRJCT_TMP,'test.db')
+os.environ["TEST"] = "0"
+
 
 @pytest.fixture(autouse=True)
 def setup_function():
     # Create directories
     set_directories()
-    path_log = os.path.join(PRJCT_TMP,'Test.log')   
     # Create logger
+    path_log = os.path.join(PRJCT_TMP,'Test.log')
     set_logger('Test', path_log, 'w')
     yield
     # remove database
@@ -72,6 +74,7 @@ def test_fetch():
         test_rss_sources_file = open(test_rss_sources_path,'r')
     except FileNotFoundError as e:
         print(e)
+        assert False
     else:
         log_line = test_rss_sources_file.readline()
         # Get the line with valid url
@@ -83,7 +86,7 @@ def test_fetch():
         # Test existence
         assert(os.path.exists(os.path.join(PRJCT_TMP,file_name)))
         # Test return of function
-        assert fetch_list[0]['file_name'] == file_name  
+        assert fetch_list[0]['file_name'] == file_name
     
 def build_xml(file_path: str, nb_item: int):
     """

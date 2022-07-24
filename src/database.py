@@ -7,12 +7,13 @@ from src.utils import *
 class Database():
     
     def __init__(self, db_path: str):
-        set_directories()
         self.url = 'sqlite:///'+db_path
         self.engine = create_engine(self.url, future=True)
         self.meta = MetaData(bind=self.engine)
         if not os.path.exists(db_path):
             self.create_tables()
+            logger = get_logger()
+            logger.info("Database created at "+db_path)
     
     def create_tables(self):
         """
@@ -148,9 +149,10 @@ class Database():
                 rows_list.append(row._mapping)
             return rows_list
 
+    # TODO : add verification of others parameters
     def valid_line(self, line: str, src_path: str, cpt_line: int) -> Boolean:
         """
-        To know if a line is conform to an imported files. Doesn't check the validity of the url.\n
+        Check formating of a line in an imported files. Doesn't check the validity of the url.\n
         Details of error are logged.
 
         Args:

@@ -1,8 +1,10 @@
+from logging import getLogger
 from time import sleep
 from datetime import datetime,timedelta,timezone
 
 from src.utils import *
 
+os.environ["TEST"] = "0"
 
 def test_name_to_file():
     string_1 = "String0 String-String_String\n"
@@ -45,3 +47,9 @@ def test_time_delta():
     date_3 = datetime.utcnow() + timedelta(days=1)
     date_3 = date_to_int(date_3)
     assert date + delta <= date_3
+
+def test_log():
+    log_path = os.path.join(PRJCT_TMP,'Test.log')
+    set_logger('Test',log_path)
+    logger = getLogger('Test')
+    logger.info("Test info")

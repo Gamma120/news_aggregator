@@ -36,7 +36,14 @@ def set_logger(logger_name: str, log_file_path: str, mode='a', level=logging.DEB
     fileHandler.setLevel(level)
     l.setLevel(level)
     l.addHandler(fileHandler)
-    
+
+def get_logger():
+    test = os.environ["TEST"]
+    if(test != "0"):
+        return logging.getLogger("News_aggregator")
+    else:
+        return logging.getLogger("Test")
+
 def name_to_file(name: str) -> str:
     return "".join(x for x in name if x.isalnum() or x in " _-").lower().replace(' ','_')
 

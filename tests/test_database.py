@@ -8,7 +8,7 @@ from src.database import *
 from src.utils import *
 
 db_path = os.path.join(PRJCT_TMP,'test.db')
-
+os.environ["TEST"] = "0"
 
 @pytest.fixture(autouse=True)
 def setup_function():

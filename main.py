@@ -1,6 +1,17 @@
 import sys
-from src import discord_bot
+import os
 
 
 if __name__ == '__main__' :
+    # set the environ as not TEST
+    os.environ["TEST"] = "1"
+    
+    from src.utils import set_logger
+    from src.utils import set_directories
+    from src.utils import PRJCT_LOGS
+    from src import discord_bot
+
+    set_directories()
+    log_path = os.path.join(PRJCT_LOGS,'news_aggregator.log')
+    set_logger('News_aggregator', log_path)
     sys.exit(discord_bot.run())

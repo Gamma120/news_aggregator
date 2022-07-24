@@ -142,16 +142,33 @@ async def update(ctx):
 
 
 @bot.command(name='import',
-             description='Add rss flux from file in argument.',
+             description='Add rss flux from file in attachement.',
              usage='<file_to_import>',
              help='Format of the file:\n'
              'flux name;url[;channel[;last item[;last time fetched[;update rate]]]]\n'
              'If the channel is not provided, it will be the one the command was invoke in.\n'
              'Update rate format : XdXhXm')
-async def _import(ctx, arg: str):
+async def _import(ctx):
+    logger = get_logger()
     channel = ctx.channel
+    author_name = ctx.author.name
+    author_id = ctx.author.id
     
-    await ctx.send("Import completed.")
+    attachments = ctx.message.attachments
+    if(len(attachments)!=1):
+        await ctx.send("Please provide a file in attachement.")
+        await help(ctx,"import")
+    else:
+        file = attachments[0]
+        if(file.content_type != "text/plain; charset=utf-8"):
+            await ctx.send("Please provide a text file.\nProvided "+file.content_type)
+        else:
+            file_name = file.filename
+            file_path = os.path.join(PRJCT_TMP,file_name)
+            logger.info(author_name +" (" + str(author_id) + ") imported " + file_name)
+            await file.save(file_path)
+            db.import_list(file_path,channel.id)
+            await ctx.send("Import successful")
 
 
 
@@ -193,5 +210,4 @@ async def echo(ctx,*args):
     
       
 def run():
-    set_directories()
     bot.run('')

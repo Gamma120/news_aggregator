@@ -214,8 +214,24 @@ def test_import_list():
     db = Database(db_path)
     
     src_path = os.path.join(PRJCT_TEST_SRC,"test_rss_sources.txt")
-    db.import_list(src_path, "test_channel")
+    db.import_list_rss(src_path, "test_channel")
     rss_list = db.get_rss_flux_list()
     assert len(rss_list) == 3
     assert rss_list == ["Google index","Google idex","zafeazhkf"]
+
+def test_export_list(rss_dicts):
+    db = Database(db_path)
+    
+    # Populate the database
+    db.add_rss_flux(rss_dicts[0])
+    db.add_rss_flux(rss_dicts[1], 'test_channel')
+    db.add_rss_flux(rss_dicts[2])
+    
+    # Test
+    file_name = "RSS-"+datetime.strftime(datetime.utcnow(),'%Y-%m-%d')+'.csv'
+    db.export_list_rss(file_name)
+    
+    # Assert creation
+    file_path = os.path.join(PRJCT_TMP,file_name)
+    assert os.path.exists(file_path)
     

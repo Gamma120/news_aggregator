@@ -1,4 +1,5 @@
 import os
+from  discord import File
 from discord.ext import commands
 from ast import literal_eval
 
@@ -143,7 +144,7 @@ async def update(ctx):
 
 @bot.command(name='import',
              description='Add rss flux from file in attachement.',
-             usage='<file_to_import>',
+             usage='',
              help='Format of the file:\n'
              'flux name;url[;channel[;last item[;last time fetched[;update rate]]]]\n'
              'If the channel is not provided, it will be the one the command was invoke in.\n'
@@ -167,8 +168,22 @@ async def _import(ctx):
             file_path = os.path.join(PRJCT_TMP,file_name)
             logger.info(author_name +" (" + str(author_id) + ") imported " + file_name)
             await file.save(file_path)
-            db.import_list(file_path,channel.id)
+            db.import_list_rss(file_path,channel.id)
             await ctx.send("Import successful")
+
+
+@bot.command(name='export',
+             description='Export the database in csv.',
+             usage='<file_name>',
+             help='')
+async def _export(ctx, arg: str = None):
+    channel = ctx.channel
+    channel_id = channel.id
+    file_name = arg
+    
+    export_file = db.export_list_rss(file_name,str(channel.id))
+    attachment = File(export_file)
+    await ctx.send(file=attachment)
 
 
 

@@ -3,6 +3,7 @@ from datetime import datetime
 
 from src.utils import *
 
+# TODO : add utf8 format in db
 
 class Database():
     
@@ -45,6 +46,7 @@ class Database():
     def get_table(self, table_name: str) -> Table:
         return Table(table_name, self.meta, autoload_with=self.engine)     
     
+    # TODO : raise error
     def get_rss_row(self, row_id: dict) -> dict:
         """Get a row from the rss_flux table.
 
@@ -54,6 +56,7 @@ class Database():
         Returns:
             dict: the complet row in dictionnary type
         """
+        logger = get_logger()
         with self.engine.connect() as conn:
             rss_flux = self.get_table('rss_flux')
             ins = rss_flux.select().where(and_(
@@ -62,20 +65,56 @@ class Database():
             )
             res = conn.execute(ins)
             row = res.mappings().all()
-            assert len(row) == 1
-            return row[0]
-      
-    def get_rss_flux_list(self, channel: str = None) -> list:
+            if(len(row) > 1):
+                entries=''
+                for i in range(len(row)):
+                    entries+=row[i]+'\n'
+                logger.error("Database corrupted: Multiple entries with same primary key")
+                logger.debug("Table: "+rss_flux.name+'\n'
+                             +"Entries:\n"
+                             + entries)
+                return
+            
+            elif(len(row) == 0):
+                return
+            
+            else:
+                return row[0]
+    
+    def get_rss_rows(self, channel: str = None) -> list[dict]:
+        """Get rows from the rss_flux table.
+
+        Args:
+            channel (str, optional): id of the discord channel of the rows to select.
+            Defaults select from all channels.
+
+        Returns:
+            list[dict]: list of rows in dictionnary type
+        """
+        
         with self.engine.connect() as conn:
             rss_flux = self.get_table('rss_flux')
-            if(channel!=None):
+            if(channel != None):
                 select = rss_flux.select().where(
                     rss_flux.c.channel == channel
                 )
             else:
                 select = rss_flux.select()
             res = conn.execute(select)
-            return [_row.name for _row in res]
+            return [_row for _row in res]
+      
+    def get_rss_flux_list(self, channel: str = None) -> list[str]:
+        """Get a list of rss in database for a specific channel
+
+        Args:
+            channel (str, optional): id of the discord channel of the rows to select. Defaults select from all channels.
+
+        Returns:
+            list[str]: list of rows names
+        """
+        
+        rows_list = self.get_rss_rows(channel)
+        return [_row['name'] for _row in rows_list]
     
     def get_table_list(self):
         return [table for table in self.meta.tables]
@@ -159,7 +198,7 @@ class Database():
             line (str): line from a file to import
             src_path (str): path of file to import
             cpt_line (int): line number in the file
-
+            
         Returns:
             Boolean: True if the line is valid, False otherwise
         """
@@ -181,13 +220,16 @@ class Database():
                     return False
         return True
                         
-        
-    def import_list(self, src_path: str, channel: str):
-        """ Add rss flux in database from informations in a text file
+    # TODO : support others parameters      
+    def import_list_rss(self, src_path: str, channel: str = None):
+        """ Add rss flux in database from a text file in cvs format.\n
+        Format of the file:\n
+            flux name;url[;channel[;last item[;last time fetched[;update rate]]]]
 
         Args:
             src_path (str): path to the file to import
-            channel (str): name of the discord channel from which the request is made
+            channel (str): id of the discord channel from which the rss flux must be subscribed.
+             Defaults subscribe the flux in the channel from which the command is executed.
         """
         
         logger = logging.getLogger('Database')
@@ -204,13 +246,49 @@ class Database():
                 if(self.valid_line(line,src_path,cpt_line)):
                     line = line.strip('\n')
                     line = line.split(';')
-                    name = line[0]
+                    name = line[0]; url = line[1]
                     file_name = name_to_file(name)
-                    url = line[1]
+                    if(len(line) > 2):
+                        channel=line[2]
                     # Add entry to database
                     self.add_rss_flux({'name': name, 'file_name': file_name, 'url': url, 'channel': channel})
                 cpt_line+=1
             logger.info("Import completed")
             rss_source.close()
+
+    
+    def export_list_rss(self, export_name: str = None, channel: str = None) -> str:
+        """Convert the database to a text file csv format  
+
+        Args:
+            export_name (str): name of the exported file. Default RSS-<date>.csv
+            channel (str): id of the discord channel of the rows to select.
+            Defaults select from all channels.
+        
+        Returns:
+            str: path of the exported file
+        """
+        
+        # Get the rows from the database
+        rows_list = self.get_rss_rows(channel)
+
+        # Create the file to export
+        if(export_name == None): export_name = 'RSS-'+datetime.strftime(datetime.utcnow(),'%Y-%m-%d')+'.csv'
+        export_path = os.path.join(PRJCT_TMP,export_name)
+        export_file = open(export_path,'w')
+        
+        # add the format in comment
+        export_file.write('# flux name;url[;channel[;last item[;last time fetched[;update rate]]]]\n')
+        
+        for row in rows_list:
+            line=''
+            # format to csv (doesn't add row id)
+            for key in row.keys():
+                if(key != 'id'):
+                    line+=str(row[key])+';'
+            line+='\n'
             
-# TODO : export flux
+            export_file.write(line)
+        
+        export_file.close()
+        return export_path

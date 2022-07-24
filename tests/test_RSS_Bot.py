@@ -61,7 +61,7 @@ def test_fetch():
     
     #
     db = Database(db_path)
-    db.import_list(test_rss_sources_path,"test_channel")
+    db.import_list_rss(test_rss_sources_path,"test_channel")
     fetch_list = db.to_fetch()
     # Run tested function, result in tmp directory
     fetched_list = rss_bot.fetch(fetch_list, PRJCT_TMP)

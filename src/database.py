@@ -1,4 +1,3 @@
-from os import curdir
 from sqlalchemy import *
 from datetime import datetime
 
@@ -46,22 +45,22 @@ class Database():
                          Column('id', Integer, primary_key=True),
                          Column('name', String, nullable=False),
                          Column('discord_id', String, nullable=false),
-                         UniqueConstraint('name','discord_id'))
+                         Column('update_rate', FLOAT),
+                         UniqueConstraint('discord_id'))
         
         self.meta.create_all(self.engine)
     
     def get_table(self, table_name: str) -> Table:
         return Table(table_name, self.meta, autoload_with=self.engine)     
     
-    # TODO : test
-    def get_channels(self) -> list[dict]:
+    def get_channels_rows(self) -> list[dict]:
         with self.engine.connect() as conn:
             channels = self.get_table('channels')
             select = channels.select()
             res = conn.execute(select)
             return [_row for _row in res]
-    # TODO : test
-    def add_channel(self, channel_name: str, channel_discord_id: str):
+
+    def add_channel(self, channel_name: str, channel_discord_id: str, update_rate: float = None):
         """Add a row in channel table
 
         Args:
@@ -72,11 +71,12 @@ class Database():
         with self.engine.connect() as conn:
             channels = self.get_table('channels')
             ins = channels.insert().values(name = channel_name,
-                                           discord_id = channel_discord_id)
+                                           discord_id = channel_discord_id,
+                                           update_rate = update_rate)
             
             res = conn.execute(ins)
             conn.commit()
-    # TODO : test
+
     def remove_channel(self, channel_name: str, channel_discord_id: str):
         """Remove a row in the channel table
 

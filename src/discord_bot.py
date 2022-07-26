@@ -22,7 +22,7 @@ async def on_ready():
     
     # Update the channels
     channel_list_discord = get_channels()
-    add_channel_db(channel_list_discord)
+    update_channel_db(channel_list_discord)
 
 @bot.command(name='show_rss',
              description='Show all subscribed rss flux of the channel',
@@ -186,7 +186,6 @@ async def _import(ctx):
              help='')
 async def _export(ctx, arg: str = None):
     channel = ctx.channel
-    channel_id = channel.id
     file_name = arg
     
     export_file = db.export_list_rss(file_name,str(channel.id))
@@ -244,12 +243,19 @@ def get_channels() -> list:
             text_channel_list.append(channel)
     return text_channel_list
 
-def add_channel_db(channel_list: list[dict]):
+def update_channel_db(channel_list: list[dict]):
     """Add discord channels in database. Only add those not already in database.
     """
-    channel_list_db = db.get_channels()
-    for channel in list(set(channel_list).difference(channel_list_db)) :
+    channel_list_db = db.get_channels_rows()
+    # TODO : fix
+    print(channel_list_db)
+    print(channel_list)
+    for channel in list(set(channel_list).difference(channel_list_db)):
         db.add_channel(channel.name, str(channel.id))
+    
+    for channel in list(set(channel_list_db).difference(channel_list)):
+        print(channel)
+        db.remove_channel(str(channel.id))
 
 @bot.event
 async def on_guild_channel_create(channel):
@@ -257,7 +263,11 @@ async def on_guild_channel_create(channel):
 
 @bot.event
 async def on_guild_channel_delete(channel):
-    db.remove_channel(channel.name, str(channel.id))
+    db.remove_channel(str(channel.id))
+
+@bot.event
+async def on_guild_channel_update(before, after):
+    db.edit_channel(after.id, after.name)
 
 def run():
     bot.run('')

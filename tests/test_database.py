@@ -312,7 +312,7 @@ def test_remove_channel():
     channel_list = db.get_channels_rows()
     assert len(channel_list) == 2
     # Test
-    db.remove_channel('channel_1', 'discord_1')
+    db.remove_channel('discord_1')
     channel_list = db.get_channels_rows()
     assert len(channel_list) == 1
     channel_2 = channel_dicts()[1]

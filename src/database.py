@@ -77,7 +77,7 @@ class Database():
             res = conn.execute(ins)
             conn.commit()
 
-    def remove_channel(self, channel_name: str, channel_discord_id: str):
+    def remove_channel(self, channel_discord_id: str):
         """Remove a row in the channel table
 
         Args:
@@ -88,12 +88,42 @@ class Database():
         with self.engine.connect() as conn:
             channels = self.get_table('channels')
             ins = channels.delete().where(and_(
-                channels.c.name == channel_name,
                 channels.c.discord_id == channel_discord_id
             ))
             conn.execute(ins)
             conn.commit()
+
+    # TODO : test
+    def edit_channel(self, channel_discord_id: str, channel_name: str = None, update_rate: str = None):
+        changes = {}
+        if (channel_name != None): changes.update({'name': channel_name})
+        if (update_rate != None): changes.update({'update_rate': update_rate})
+        with self.engine.connect() as conn:
+            channels = self.get_table('channels')
+            edit = channels.update().where(
+                channels.c.discord_id == channel_discord_id).values(changes)
             
+            conn.execute(edit)
+            conn.commit()
+
+    def get_channel_pkey(self, channel: str) -> int:
+        """Convert the discord channel's id into 
+        the primary key of the corresponding row
+
+        Args:
+            channel (str): id of the discord channel
+
+        Returns:
+            int: primary key
+        """
+        with self.engine.connect() as conn:
+            channels = self.get_table('channels')
+            select_id = channels.select(channels.c.id).where(
+                channels.c.discord_id == channel
+            )
+            row = conn.execute(select_id)
+            return row.first()[0]
+
 
     # TODO : raise error
     def get_rss_row(self, rss_name: str, channel: str) -> dict:
@@ -173,25 +203,7 @@ class Database():
     def get_column_list(self, table_name: str):
         table = self.get_table(table_name)
         return table.columns.keys() 
-    
-    def get_channel_pkey(self, channel: str) -> int:
-        """Convert the discord channel's id into 
-        the primary key of the corresponding row
 
-        Args:
-            channel (str): id of the discord channel
-
-        Returns:
-            int: primary key
-        """
-        with self.engine.connect() as conn:
-            channels = self.get_table('channels')
-            select_id = channels.select(channels.c.id).where(
-                channels.c.discord_id == channel
-            )
-            row = conn.execute(select_id)
-            return row.first()[0]
-           
     def add_rss_flux(self, rss_dict: dict, channel: str = None):
         """
         Add a new row in the table rss_flux,
@@ -229,6 +241,7 @@ class Database():
             conn.execute(ins)
             conn.commit()
 
+    # TODO : change dict to individual params
     def edit_rss_flux(self, name: str, channel: str, changes: dict):
         """
         Edit a row in the table rss_flux

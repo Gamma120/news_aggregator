@@ -58,10 +58,11 @@ def test_fetch():
     rss_bot = RSS_Bot()
     # path to source file (test_rss_sources.txt)
     test_rss_sources_path = os.path.join(PRJCT_TEST_SRC,'test_rss_sources.txt')
-    
-    #
     db = Database(db_path)
-    db.import_list_rss(test_rss_sources_path,"test_channel")
+    # Populate channel table
+    db.add_channel("test_channel","discord_1")
+    
+    db.import_list_rss(test_rss_sources_path,"discord_1")
     fetch_list = db.to_fetch()
     # Run tested function, result in tmp directory
     fetched_list = rss_bot.fetch(fetch_list, PRJCT_TMP)

@@ -1,3 +1,4 @@
+from msilib import text
 import os
 from  discord import File
 from discord.ext import commands
@@ -14,7 +15,14 @@ rss_bot = RSS_Bot()
     
 @bot.event
 async def on_ready():
-    print('We have logged in as {0.user}'.format(bot))
+    logger = get_logger()
+    message = 'We have logged in as {0.user}'.format(bot)
+    logger.info(message)
+    print(message)
+    
+    # Update the channels
+    channel_list_discord = get_channels()
+    add_channel_db(channel_list_discord)
 
 @bot.command(name='show_rss',
              description='Show all subscribed rss flux of the channel',
@@ -223,6 +231,33 @@ async def echo(ctx,*args):
     arguments = ' '.join(args)
     await ctx.send(arguments)
     
-      
+
+def get_channels() -> list:
+    """Get the list of channels from the discord guilds bot
+
+    Returns:
+        list: list of channels
+    """
+    text_channel_list=[]
+    for guild in bot.guilds:
+        for channel in guild.text_channels:
+            text_channel_list.append(channel)
+    return text_channel_list
+
+def add_channel_db(channel_list: list[dict]):
+    """Add discord channels in database. Only add those not already in database.
+    """
+    channel_list_db = db.get_channels()
+    for channel in list(set(channel_list).difference(channel_list_db)) :
+        db.add_channel(channel.name, str(channel.id))
+
+@bot.event
+async def on_guild_channel_create(channel):
+    db.add_channel(channel.name, str(channel.id))
+
+@bot.event
+async def on_guild_channel_delete(channel):
+    db.remove_channel(channel.name, str(channel.id))
+
 def run():
     bot.run('')

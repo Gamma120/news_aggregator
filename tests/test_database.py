@@ -2,7 +2,6 @@ from datetime import datetime
 from time import sleep
 import pytest
 import os
-from logging import getLogger
 
 from src.database import *
 from src.utils import *
@@ -17,6 +16,11 @@ def setup_function():
     path_log = os.path.join(PRJCT_TMP,'Test.log')   
     # Create logger
     set_logger('Test', path_log, 'w')
+    # Populate channels table
+    db = Database(db_path)
+    db.add_channel('channel_1','discord_1')
+    db.add_channel('channel_2','discord_2')
+    db.add_channel('channel_3','discord_3')
     yield
     # remove database
     if os.path.exists(db_path):
@@ -26,9 +30,9 @@ def setup_function():
 
 @pytest.fixture()
 def rss_dicts() -> list[dict]:
-    dict_1 = {'name': 'test_name_1', 'url': 'test_url_1', 'channel': 'test_channel', 'update_rate': timedelta_to_int(timedelta(seconds=1))}
+    dict_1 = {'name': 'test_name_1', 'url': 'test_url_1', 'channel': 'discord_1', 'update_rate': timedelta_to_int(timedelta(seconds=1))}
     dict_2 = {'name': 'test_name_2', 'url': 'test_url_2', 'update_rate': timedelta_to_int(timedelta(seconds=5))}
-    dict_3 = {'name': 'test_name_3', 'url': 'test_url_1', 'channel': 'test_channel_2', 'update_rate': timedelta_to_int(timedelta(hours=1))}
+    dict_3 = {'name': 'test_name_3', 'url': 'test_url_1', 'channel': 'discord_2', 'update_rate': timedelta_to_int(timedelta(hours=1))}
     return dict_1, dict_2, dict_3
     
 def test_init():
@@ -42,8 +46,8 @@ def test_init():
     assert os.path.exists(db_path)
     
     table_list = db.get_table_list()
-    assert len(table_list)==2
-    assert table_list == ['rss_flux', 'channels_filters']
+    assert len(table_list) == 3
+    assert table_list == ['rss_flux', 'channels_filters', 'channels']
     
     rss_flux = db.get_table('rss_flux')
     assert  rss_flux != None
@@ -56,6 +60,12 @@ def test_init():
     columns = db.get_column_list('channels_filters')
     assert len(columns) == 3
     assert columns == ['id', 'filter', 'channel']
+    
+    channels = db.get_table('channels')
+    assert channels != None
+    columns = db.get_column_list('channels')
+    assert len(columns) == 3
+    assert columns == ['id', 'name', 'discord_id']
 
 # TODO : test_uniqueConstraint
    
@@ -66,19 +76,19 @@ def test_add_rss_flux(rss_dicts):
     
     db = Database(db_path)
     # Test: add a first entry
-    db.add_rss_flux(rss_dicts[0], 'arg_channel')
-    rss_flux = db.get_rss_row({'name': 'test_name_1', 'channel': 'test_channel'})
+    db.add_rss_flux(rss_dicts[0])
+    rss_flux = db.get_rss_row('test_name_1', 'discord_1')
     assert len(rss_flux) == 8
-    assert rss_flux['channel'] == 'test_channel'
+    assert rss_flux['channel'] == 1
     
     # Test: add a second entry with channel=None
-    db.add_rss_flux(rss_dicts[1], 'arg_channel')
+    db.add_rss_flux(rss_dicts[1], 'discord_3')
     rss_list = db.get_rss_flux_list()
     assert len(rss_list) == 2
     assert rss_list == ['test_name_1', 'test_name_2']
     ## check the name of the channel
-    rss_flux = db.get_rss_row({'name': 'test_name_2', 'channel': 'arg_channel'})
-    assert rss_flux['channel'] == 'arg_channel'
+    rss_flux = db.get_rss_row('test_name_2', 'discord_3')
+    assert rss_flux['channel'] == 3
 
 def test_remove_rss_flux(rss_dicts):
     """
@@ -88,17 +98,17 @@ def test_remove_rss_flux(rss_dicts):
     db = Database(db_path)
     
     # Test the supression of a row in a table of one
-    rss_dict = {'name': 'test_name', 'url': 'test_url', 'channel': 'test_channel', 'update_rate': timedelta_to_int(timedelta(hours=1))}
+    rss_dict = {'name': 'test_name', 'url': 'test_url', 'channel': 'discord_1', 'update_rate': timedelta_to_int(timedelta(hours=1))}
     db.add_rss_flux(rss_dict)
-    db.remove_rss_flux('test_name', 'test_channel')
+    db.remove_rss_flux('test_name', 'discord_1')
     rss_list = db.get_rss_flux_list()
     assert len(rss_list) == 0
     
     # Test the supression of a row in a table with multiple rows
     db.add_rss_flux(rss_dicts[0])
-    db.add_rss_flux(rss_dicts[1], 'test_channel')
+    db.add_rss_flux(rss_dicts[1], 'discord_1')
     db.add_rss_flux(rss_dicts[2])
-    db.remove_rss_flux('test_name_2', 'test_channel')
+    db.remove_rss_flux('test_name_2', 'discord_1')
     rss_list = db.get_rss_flux_list()
     assert len(rss_list) == 2
     assert rss_list == ['test_name_1', 'test_name_3']
@@ -108,11 +118,11 @@ def test_get_rss_list(rss_dicts):
     
     # Populate database
     db.add_rss_flux(rss_dicts[0])
-    db.add_rss_flux(rss_dicts[1], 'test_channel')
+    db.add_rss_flux(rss_dicts[1], 'discord_1')
     db.add_rss_flux(rss_dicts[2])
     
-    # Get all entries with channel=test_channel
-    rss_list = db.get_rss_flux_list('test_channel')
+    # Get all entries with channel=1
+    rss_list = db.get_rss_flux_list('discord_1')
     assert len(rss_list) == 2
     assert rss_list == ['test_name_1', 'test_name_2']
     
@@ -130,12 +140,16 @@ def test_get_row(rss_dicts):
     rss_dict_1 = rss_dicts[0]
     rss_dict_2 = rss_dicts[1]
     db.add_rss_flux(rss_dict_1)
-    db.add_rss_flux(rss_dict_2, 'arg_channel')
+    db.add_rss_flux(rss_dict_2, 'discord_3')
     # Test: get the rows
     rss_dict_1.update({'id': 1, 'last_time_fetched': None, 'file_name': 'test_name_1.xml', 'last_item': None})
-    rss_dict_2.update({'id': 2, 'channel': 'arg_channel', 'last_time_fetched': None, 'file_name': 'test_name_2.xml', 'last_item': None})
-    rss_dict_1_res = db.get_rss_row(rss_dict_1)
-    rss_dict_2_res = db.get_rss_row(rss_dict_2)
+    rss_dict_2.update({'id': 2, 'channel': 'discord_3', 'last_time_fetched': None, 'file_name': 'test_name_2.xml', 'last_item': None})
+    rss_dict_1_res = db.get_rss_row(rss_dict_1['name'], rss_dict_1['channel'])
+    rss_dict_2_res = db.get_rss_row(rss_dict_2['name'], rss_dict_2['channel'])
+    
+    # To make easier to verify, change the dicts because of the conversion of the channel id
+    rss_dict_1.update({'channel': 1})
+    rss_dict_2.update({'channel': 3})
     for key in rss_dict_1.keys(): # assumption: same keys between dictionnaries
         assert rss_dict_1_res[key] == rss_dict_1[key]
         assert rss_dict_2_res[key] == rss_dict_2[key]
@@ -150,12 +164,12 @@ def test_edit_rss_flux(rss_dicts):
     rss_dict = rss_dicts[0]
     db.add_rss_flux(rss_dict)
     # Test : edit row in rss_flux
-    db.edit_rss_flux('test_name_1', 'test_channel', {'channel': 'test_channel_edit', 'url': 'test_url_edit', 'update_rate': timedelta_to_int(timedelta(days=2))})
+    db.edit_rss_flux('test_name_1', 'discord_1', {'channel': 'discord_2', 'url': 'test_url_edit', 'update_rate': timedelta_to_int(timedelta(days=2))})
     ## update the channel in the old copy for accurate result from get_rss_row
-    rss_dict.update({'channel': 'test_channel_edit'})
-    rss_dict_res = db.get_rss_row(rss_dict)
+    rss_dict.update({'channel': 'discord_2'})
+    rss_dict_res = db.get_rss_row(rss_dict['name'], rss_dict['channel'])
     ## the answer
-    rss_dict_ans = {'id': 1, 'name': 'test_name_1', 'file_name': 'test_name_1.xml', 'url': 'test_url_edit', 'channel': 'test_channel_edit', 'last_item': None, 'last_time_fetched': None, 'update_rate': timedelta_to_int(timedelta(days=2))}
+    rss_dict_ans = {'id': 1, 'name': 'test_name_1', 'file_name': 'test_name_1.xml', 'url': 'test_url_edit', 'channel': 2, 'last_item': None, 'last_time_fetched': None, 'update_rate': timedelta_to_int(timedelta(days=2))}
     for key in rss_dict_ans.keys(): # assumption: same keys between dictionnaries
         assert rss_dict_res[key] == rss_dict_ans[key]
 
@@ -169,10 +183,11 @@ def test_to_fetch(rss_dicts):
     rss_dict_2 = rss_dicts[1]
     # Test where both should be in the list, because last_time_fetched is None
     db.add_rss_flux(rss_dict_1)
-    db.add_rss_flux(rss_dict_2, "test_channel")
+    db.add_rss_flux(rss_dict_2, "discord_1")
     ## update old entries to become answers 
-    rss_dict_1.update({'id': 1, 'file_name': 'test_name_1.xml', 'last_item':None, 'last_time_fetched':None})
-    rss_dict_2.update({'id': 2, 'channel': 'test_channel', 'file_name': 'test_name_2.xml', 'last_item':None, 'last_time_fetched':None})
+    rss_dict_1.update({'id': 1, 'channel': 1, 'file_name': 'test_name_1.xml', 'last_item':None, 'last_time_fetched':None})
+    rss_dict_2['channel'] = 1
+    rss_dict_2.update({'id': 2, 'file_name': 'test_name_2.xml', 'last_item':None, 'last_time_fetched':None})
     ## sleep 2 seconds > to timedelta of first row,
     ## but < to timedelta of seconde row
     sleep(2)
@@ -187,8 +202,8 @@ def test_to_fetch(rss_dicts):
     now = date_to_int(datetime.utcnow())
     ## Update old entry to become answer
     rss_dict_1.update({'last_time_fetched': now})
-    db.edit_rss_flux('test_name_1','test_channel',{'last_time_fetched': now})
-    db.edit_rss_flux('test_name_2','test_channel',{'last_time_fetched': now})
+    db.edit_rss_flux('test_name_1','discord_1',{'last_time_fetched': now})
+    db.edit_rss_flux('test_name_2','discord_1',{'last_time_fetched': now})
     sleep(2)
     fetch_list = db.to_fetch()
     assert len(fetch_list) == 1
@@ -214,7 +229,7 @@ def test_import_list():
     db = Database(db_path)
     
     src_path = os.path.join(PRJCT_TEST_SRC,"test_rss_sources.txt")
-    db.import_list_rss(src_path, "test_channel")
+    db.import_list_rss(src_path, "discord_1")
     rss_list = db.get_rss_flux_list()
     assert len(rss_list) == 3
     assert rss_list == ["Google index","Google idex","zafeazhkf"]
@@ -224,7 +239,7 @@ def test_export_list(rss_dicts):
     
     # Populate the database
     db.add_rss_flux(rss_dicts[0])
-    db.add_rss_flux(rss_dicts[1], 'test_channel')
+    db.add_rss_flux(rss_dicts[1], 'discord_1')
     db.add_rss_flux(rss_dicts[2])
     
     # Test

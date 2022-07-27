@@ -1,6 +1,7 @@
-from msilib import text
 import os
 from  discord import File
+from discord import Embed
+from discord import Color
 from discord.ext import commands
 from ast import literal_eval
 
@@ -71,7 +72,7 @@ async def show_all(ctx):
              help='')
 async def info(ctx, flux_name: str):
     channel = ctx.channel
-    row = db.get_rss_row({'name': flux_name,'channel': channel.id})
+    row = db.get_rss_row(flux_name, channel.id)
     
     message=f'Informations found about {flux_name}:\n```'
     for key in row.keys():
@@ -89,10 +90,9 @@ async def info(ctx, flux_name: str):
 async def add_rss(ctx, flux_name: str, url: str, *args : str):
     channel = ctx.channel
     # TODO : handle the others args
-    channel_id = channel.id
     rss_flux = {'name': flux_name, 'url':url}
     # dattabase should raise errors and be handled here
-    db.add_rss_flux(rss_flux, channel_id)
+    db.add_rss_flux(rss_flux, channel.id)
     await ctx.send(f"{flux_name} added to {channel.name}.")
 
 
@@ -103,8 +103,7 @@ async def add_rss(ctx, flux_name: str, url: str, *args : str):
              help='')
 async def remove_rss(ctx, flux_name: str):
     channel = ctx.channel
-    channel_id = channel.id
-    db.remove_rss_flux(flux_name,channel_id)
+    db.remove_rss_flux(flux_name,channel.id)
     await ctx.send(f"{flux_name} remove from {channel.name}.")
 
 
@@ -199,26 +198,37 @@ async def _export(ctx, arg: str = None):
              usage='<command>',
              help='If no command provided in argument, display all commands available.')
 async def help(ctx, arg: str = None):
+    embed = Embed(title="Help", colour=Color.blue())
     if arg==None:
-        helptext='Available commands:\n```'
+        help_cmd=''
+        help_content=''
         for command in bot.commands:
-            helptext+=f"{command}\t{command.description}\n"
-        helptext+='Type $help <command> for more info on a command.```'
-        await ctx.send(helptext)
+            help_cmd+=f"{command}\n"
+            help_content+=f"{command.description}\n"
+        embed.add_field(name='Command', value=help_cmd, inline=True)
+        embed.add_field(name='Description', value=help_content, inline=True)
+        embed.set_footer(text="Type $help <command> for more info on a command.")
+        await ctx.send(embed=embed)
     else:
         found=False
         for cmd in bot.commands:
             if arg==cmd.name:
-                helptext=f'**{cmd.name}**:\n```{cmd.description}\nUsage: ${cmd.name} {cmd.usage}\n{cmd.help}```'
-                await ctx.send(helptext)
+                embed.add_field(name='Command', value=f'{cmd.name}', inline=False)
+                embed.add_field(name='Description', value=cmd.description, inline=False)
+                embed.add_field(name='Usage', value=f'${cmd.name} {cmd.usage}\n{cmd.help}', inline=False)
+                await ctx.send(embed=embed)
                 found=True
 
         if not found:
-            helptext='Available commands:\n```'
+            help_cmd=''
+            help_content=''
             for command in bot.commands:
-                helptext+=f"{command}\t{command.description}\n"
-            helptext+='Type $help <command> for more info on a command.```'
-            await ctx.send(helptext)
+                help_cmd+=f"{command}\n"
+                help_content+=f"{command.description}\n"
+            embed.add_field(name='Command', value=help_cmd, inline=True)
+            embed.add_field(name='Description', value=help_content, inline=True)
+            embed.set_footer(text="Type $help <command> for more info on a command.")
+            await ctx.send(embed=embed)
 
 
 
@@ -246,28 +256,47 @@ def get_channels() -> list:
 def update_channel_db(channel_list: list[dict]):
     """Add discord channels in database. Only add those not already in database.
     """
-    channel_list_db = db.get_channels_rows()
-    # TODO : fix
-    print(channel_list_db)
-    print(channel_list)
-    for channel in list(set(channel_list).difference(channel_list_db)):
-        db.add_channel(channel.name, str(channel.id))
     
-    for channel in list(set(channel_list_db).difference(channel_list)):
-        print(channel)
-        db.remove_channel(str(channel.id))
+    logger = get_logger()
+    # Get the list of channels in database
+    channel_list_db = db.get_channels_rows()
+    # List of discord id in database
+    channel_id_list_db = []
+    for channel in channel_list_db:
+        channel_id_list_db.append(channel['discord_id'])
+    # List of discord id in discord 
+    channel_id_list = []
+    for channel in channel_list:
+        channel_id_list.append(channel.id)
+
+    for id in list(set(channel_id_list).difference(channel_id_list_db)):
+        # search the name associated to the discord id
+        name = next(channel.name for channel in channel_list if id == channel.id)
+        logger.info("Channel "+ name + " (" + str(id) +") created.")
+        db.add_channel(name, id)
+    
+    for id in list(set(channel_id_list_db).difference(channel_id_list)):
+        name = next(channel['name'] for channel in channel_list_db if id == channel['discord_id'])
+        logger.info("Channel "+ name + " (" + str(id) +") deleted.")
+        db.remove_channel(id)
 
 @bot.event
 async def on_guild_channel_create(channel):
-    db.add_channel(channel.name, str(channel.id))
+    db.add_channel(channel.name, channel.id)
+    logger = get_logger()
+    logger.info("Channel "+ channel.name + " (" + str(channel.id) +") created.")
 
 @bot.event
 async def on_guild_channel_delete(channel):
-    db.remove_channel(str(channel.id))
+    db.remove_channel(channel.id)
+    logger = get_logger()
+    logger.info("Channel "+ channel.name + " (" + str(channel.id) +") deleted.")
 
 @bot.event
 async def on_guild_channel_update(before, after):
     db.edit_channel(after.id, after.name)
+    logger = get_logger()
+    logger.info("Channel "+ before.name + " changed to " + after.name + ' (' + str(after.id) + ').')
 
 def run():
     bot.run('')

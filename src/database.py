@@ -44,7 +44,7 @@ class Database():
         channels = Table('channels', self.meta,
                          Column('id', Integer, primary_key=True),
                          Column('name', String, nullable=False),
-                         Column('discord_id', String, nullable=false),
+                         Column('discord_id', INTEGER, nullable=false),
                          Column('update_rate', FLOAT),
                          UniqueConstraint('discord_id'))
         
@@ -60,12 +60,12 @@ class Database():
             res = conn.execute(select)
             return [_row for _row in res]
 
-    def add_channel(self, channel_name: str, channel_discord_id: str, update_rate: float = None):
+    def add_channel(self, channel_name: str, channel_discord_id: int, update_rate: float = None):
         """Add a row in channel table
 
         Args:
             channel_name (str): name of the discord channel
-            channel_discord_id (str): id of the discord channel
+            channel_discord_id (int): id of the discord channel
         """
         
         with self.engine.connect() as conn:
@@ -77,12 +77,11 @@ class Database():
             res = conn.execute(ins)
             conn.commit()
 
-    def remove_channel(self, channel_discord_id: str):
+    def remove_channel(self, channel_discord_id: int):
         """Remove a row in the channel table
 
         Args:
-            channel_name (str): channel name
-            channel_discord_id (str): channel discord id
+            channel_discord_id (int): channel discord id
         """
     
         with self.engine.connect() as conn:
@@ -94,7 +93,7 @@ class Database():
             conn.commit()
 
     # TODO : test
-    def edit_channel(self, channel_discord_id: str, channel_name: str = None, update_rate: str = None):
+    def edit_channel(self, channel_discord_id: int, channel_name: str = None, update_rate: str = None):
         changes = {}
         if (channel_name != None): changes.update({'name': channel_name})
         if (update_rate != None): changes.update({'update_rate': update_rate})
@@ -106,12 +105,12 @@ class Database():
             conn.execute(edit)
             conn.commit()
 
-    def get_channel_pkey(self, channel: str) -> int:
+    def get_channel_pkey(self, channel: int) -> int:
         """Convert the discord channel's id into 
         the primary key of the corresponding row
 
         Args:
-            channel (str): id of the discord channel
+            channel (int): id of the discord channel
 
         Returns:
             int: primary key
@@ -126,11 +125,12 @@ class Database():
 
 
     # TODO : raise error
-    def get_rss_row(self, rss_name: str, channel: str) -> dict:
+    def get_rss_row(self, rss_name: str, channel: int) -> dict:
         """Get a row from the rss_flux table.
 
         Args:
-            row_id (dict): dictionnary containing name and channel keys
+            rss_name (str): name of the rss flux
+            channel (int): discord id of the channel
 
         Returns:
             dict: the row in dictionnary type
@@ -161,11 +161,11 @@ class Database():
             else:
                 return row[0]
     
-    def get_rss_rows(self, channel: str = None) -> list[dict]:
+    def get_rss_rows(self, channel: int = None) -> list[dict]:
         """Get rows from the rss_flux table.
 
         Args:
-            channel (str, optional): id of the discord channel of the rows to select.
+            channel (int, optional): id of the discord channel of the rows to select.
             Defaults select from all channels.
 
         Returns:
@@ -184,11 +184,11 @@ class Database():
             res = conn.execute(select)
             return [_row for _row in res]
       
-    def get_rss_flux_list(self, channel: str = None) -> list[str]:
+    def get_rss_flux_list(self, channel: int = None) -> list[str]:
         """Get a list of rss in database for a specific channel
 
         Args:
-            channel (str, optional): id of the discord channel of the rows to select. Defaults select from all channels.
+            channel (int, optional): id of the discord channel of the rows to select. Defaults select from all channels.
 
         Returns:
             list[str]: list of rows names
@@ -204,10 +204,16 @@ class Database():
         table = self.get_table(table_name)
         return table.columns.keys() 
 
-    def add_rss_flux(self, rss_dict: dict, channel: str = None):
+    # TODO : replace rss_dict with the actual arguments 
+    def add_rss_flux(self, rss_dict: dict, channel: int = None):
         """
         Add a new row in the table rss_flux,
         trigger by the discord command $add_rss
+        
+        Args:
+
+            channel (int, optional): id of the discord channel where the command was executed. Defaults select from all channels.
+
         """
         
         if(rss_dict.get('channel')!=None):
@@ -225,7 +231,7 @@ class Database():
             conn.execute(ins)
             conn.commit()
             
-    def remove_rss_flux(self, name: str, channel: str):
+    def remove_rss_flux(self, name: str, channel: int):
         """
         Remove a row in the table rss_flux,
         trigger by the discord command $remove_rss
@@ -242,7 +248,7 @@ class Database():
             conn.commit()
 
     # TODO : change dict to individual params
-    def edit_rss_flux(self, name: str, channel: str, changes: dict):
+    def edit_rss_flux(self, name: str, channel: int, changes: dict):
         """
         Edit a row in the table rss_flux
         trigger by the discord command $edit_rss
@@ -314,7 +320,7 @@ class Database():
         return True
                         
     # TODO : support others parameters      
-    def import_list_rss(self, src_path: str, channel: str = None):
+    def import_list_rss(self, src_path: str, channel: int = None):
         """ Add rss flux in database from a text file in cvs format.\n
         Format of the file:\n
             flux name;url[;channel[;last item[;last time fetched[;update rate]]]]
@@ -350,7 +356,7 @@ class Database():
             rss_source.close()
 
     
-    def export_list_rss(self, export_name: str = None, channel: str = None) -> str:
+    def export_list_rss(self, export_name: str = None, channel: int = None) -> str:
         """Convert the database to a text file csv format  
 
         Args:

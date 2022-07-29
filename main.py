@@ -1,10 +1,11 @@
 import sys
 import os
-
+from dotenv import load_dotenv
 
 if __name__ == '__main__' :
+    load_dotenv()
     # set the environ as not TEST
-    os.environ["TEST"] = "1"
+    os.environ["TEST"] = "false"
     
     from src.utils import set_logger
     from src.utils import set_directories

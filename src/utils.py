@@ -39,7 +39,7 @@ def set_logger(logger_name: str, log_file_path: str, mode='a', level=logging.DEB
 
 def get_logger():
     test = os.environ["TEST"]
-    if(test != "0"):
+    if(test != "true"):
         return logging.getLogger("News_aggregator")
     else:
         return logging.getLogger("Test")
@@ -52,3 +52,5 @@ def date_to_int(date: datetime) -> int:
 
 def timedelta_to_int(delta: timedelta) -> int:
     return delta.total_seconds()
+
+# TODO : csv parser

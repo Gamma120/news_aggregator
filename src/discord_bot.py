@@ -299,4 +299,4 @@ async def on_guild_channel_update(before, after):
     logger.info("Channel "+ before.name + " changed to " + after.name + ' (' + str(after.id) + ').')
 
 def run():
-    bot.run('')
+    bot.run(os.environ['DISCORD_TOKEN'])

@@ -7,7 +7,7 @@ from src.database import *
 from src.utils import *
 
 db_path = os.path.join(PRJCT_TMP,'test.db')
-os.environ["TEST"] = "0"
+os.environ["TEST"] = "true"
 
 def populate_channel(db: Database):
     (channel_dict_1, channel_dict_2) = channel_dicts() 

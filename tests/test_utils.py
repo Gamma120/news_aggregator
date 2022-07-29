@@ -4,7 +4,7 @@ from datetime import datetime,timedelta,timezone
 
 from src.utils import *
 
-os.environ["TEST"] = "0"
+os.environ["TEST"] = "true"
 
 def test_name_to_file():
     string_1 = "String0 String-String_String\n"

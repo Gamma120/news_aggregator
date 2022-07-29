@@ -8,7 +8,7 @@ from src.rss_bot import RSS_Bot
 from src.utils import *
 
 db_path = os.path.join(PRJCT_TMP,'test.db')
-os.environ["TEST"] = "0"
+os.environ["TEST"] = "true"
 
 
 @pytest.fixture(autouse=True)

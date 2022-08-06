@@ -60,7 +60,7 @@ def test_fetch():
     test_rss_sources_path = os.path.join(PRJCT_TEST_SRC,'test_rss_sources.txt')
     db = Database(db_path)
     # Populate channel table
-    db.add_channel("test_channel",10)
+    db.add_channel(10, "test_channel")
     
     db.import_list_rss(test_rss_sources_path,10)
     fetch_list = db.to_fetch()

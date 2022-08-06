@@ -18,7 +18,7 @@ class Database():
     
     def create_tables(self):
         """
-        Create the database tables
+        Create the database tables.
         """
         
         # uniqueness of name in a channel
@@ -42,127 +42,158 @@ class Database():
                                 UniqueConstraint('filter', 'channel'))
         
         channels = Table('channels', self.meta,
-                         Column('id', Integer, primary_key=True),
-                         Column('name', String, nullable=False),
-                         Column('discord_id', INTEGER, nullable=false),
-                         Column('update_rate', FLOAT),
-                         UniqueConstraint('discord_id'))
+                         Column('id', INTEGER, primary_key=True),
+                         Column('name', String, nullable=False),                         
+                         Column('update_rate', FLOAT))
         
         self.meta.create_all(self.engine)
     
     def get_table(self, table_name: str) -> Table:
+        """Get the Table object of table_name.
+
+        Args:
+            table_name (str): name of the table to return
+
+        Returns:
+            Table: Table object of table_name
+        """
+        
         return Table(table_name, self.meta, autoload_with=self.engine)     
     
+    def get_table_list(self):
+        return [table for table in self.meta.tables]
+    
+    def get_column_list(self, table_name: str):
+        table = self.get_table(table_name)
+        return table.columns.keys()
+    
     def get_channels_rows(self) -> list[dict]:
+        """Get the rows of the channels table.
+
+        Returns:
+            list[dict]: list of rows in channels table in dictionnary format
+        """
+        
         with self.engine.connect() as conn:
             channels = self.get_table('channels')
             select = channels.select()
             res = conn.execute(select)
             return [_row for _row in res]
 
-    def add_channel(self, channel_name: str, channel_discord_id: int, update_rate: float = None):
-        """Add a row in channel table
+    def get_channel_id(self, channel_name: str) -> int :
+        """Get the channel discord id from channel name.
 
         Args:
+            channel_name (str): channel name
+
+        Returns:
+            int: channel id
+        """
+        
+        with self.engine.connect() as conn:
+            channels = self.get_table('channels')
+            select = channels.select().where (
+                channels.c.name == channel_name
+            )
+            res = conn.execute(select)
+            return res.first()['id']
+    
+    def get_channel_name(self, channel_id: int) -> str:
+        """Get the channel name associated to the id provided.
+
+        Args:
+            channel_id (int): channel discord id
+
+        Returns:
+            str: channel name
+        """
+        
+        with self.engine.connect() as conn:
+            channels = self.get_table('channels')
+            select = channels.select().where (
+                channels.c.id == channel_id
+            )
+            res = conn.execute(select)
+            return res.first()['name']
+        
+    def add_channel(self, channel_id: int, channel_name: str, update_rate: float = None):
+        """Add a row in channels table.
+
+        Args:
+            channel_id (int): id of the discord channel
             channel_name (str): name of the discord channel
-            channel_discord_id (int): id of the discord channel
+            update_rate (float, optional): default update rate for the rss flux in the channel. Default to None.
         """
         
         with self.engine.connect() as conn:
             channels = self.get_table('channels')
             ins = channels.insert().values(name = channel_name,
-                                           discord_id = channel_discord_id,
+                                           id = channel_id,
                                            update_rate = update_rate)
             
-            res = conn.execute(ins)
+            conn.execute(ins)
             conn.commit()
 
-    def remove_channel(self, channel_discord_id: int):
-        """Remove a row in the channel table
+    def remove_channel(self, channel_id: int):
+        """Remove a row in the channels table.
 
         Args:
-            channel_discord_id (int): channel discord id
+            channel_id (int): channel discord id
         """
     
         with self.engine.connect() as conn:
             channels = self.get_table('channels')
             ins = channels.delete().where(and_(
-                channels.c.discord_id == channel_discord_id
+                channels.c.id == channel_id
             ))
             conn.execute(ins)
             conn.commit()
 
     # TODO : test
-    def edit_channel(self, channel_discord_id: int, channel_name: str = None, update_rate: str = None):
+    def edit_channel(self, channel_id: int, channel_name: str = None, update_rate: str = None):
+        """Edit a row in the channels table.
+
+        Args:
+            channel_id (int): channel discrod id
+            channel_name (str, optional): channel discord name. Defaults to None.
+            update_rate (str, optional): default update rate for the rss flux in the channel. Defaults to None.
+        """
+        
         changes = {}
         if (channel_name != None): changes.update({'name': channel_name})
         if (update_rate != None): changes.update({'update_rate': update_rate})
         with self.engine.connect() as conn:
             channels = self.get_table('channels')
             edit = channels.update().where(
-                channels.c.discord_id == channel_discord_id).values(changes)
+                channels.c.id == channel_id).values(changes)
             
             conn.execute(edit)
             conn.commit()
 
-    def get_channel_pkey(self, channel: int) -> int:
-        """Convert the discord channel's id into 
-        the primary key of the corresponding row
-
-        Args:
-            channel (int): id of the discord channel
-
-        Returns:
-            int: primary key
-        """
-        with self.engine.connect() as conn:
-            channels = self.get_table('channels')
-            select_id = channels.select(channels.c.id).where(
-                channels.c.discord_id == channel
-            )
-            row = conn.execute(select_id)
-            return row.first()[0]
-
-
     # TODO : raise error
-    def get_rss_row(self, rss_name: str, channel: int) -> dict:
+    def get_rss_row(self, rss_name: str, channel_id: int) -> dict:
         """Get a row from the rss_flux table.
 
         Args:
             rss_name (str): name of the rss flux
-            channel (int): discord id of the channel
+            channel_id (int): channel discord id
 
         Returns:
             dict: the row in dictionnary type
         """
-        logger = get_logger()
+        
         with self.engine.connect() as conn:
-            channel_pkey = self.get_channel_pkey(channel)
             rss_flux = self.get_table('rss_flux')
             ins = rss_flux.select().where(and_(
                 rss_flux.c.name == rss_name,
-                rss_flux.c.channel == channel_pkey)
+                rss_flux.c.channel == channel_id)
             )
             res = conn.execute(ins)
-            row = res.mappings().all()
-            if(len(row) > 1):
-                entries=''
-                for i in range(len(row)):
-                    entries+=row[i]+'\n'
-                logger.error("Database corrupted: Multiple entries with same primary key")
-                logger.debug("Table: "+rss_flux.name+'\n'
-                             +"Entries:\n"
-                             + entries)
-                return
+            return dict(res.first()._mapping)
             
-            elif(len(row) == 0):
-                return
-            
-            else:
-                return row[0]
     
-    def get_rss_rows(self, channel: int = None) -> list[dict]:
-        """Get rows from the rss_flux table.
+    def get_rss_rows(self, channel_id: int = None) -> list[dict]:
+        """Get the rows from the rss_flux table.
 
         Args:
             channel (int, optional): id of the discord channel of the rows to select.
@@ -174,113 +205,100 @@ class Database():
         
         with self.engine.connect() as conn:
             rss_flux = self.get_table('rss_flux')
-            if(channel != None):
-                channel_pkey = self.get_channel_pkey(channel)
+            if(channel_id != None):
                 select = rss_flux.select().where(
-                    rss_flux.c.channel == channel_pkey
+                    rss_flux.c.channel == channel_id
                 )
             else:
                 select = rss_flux.select()
             res = conn.execute(select)
             return [_row for _row in res]
-      
-    def get_rss_flux_list(self, channel: int = None) -> list[str]:
-        """Get a list of rss in database for a specific channel
-
-        Args:
-            channel (int, optional): id of the discord channel of the rows to select. Defaults select from all channels.
-
-        Returns:
-            list[str]: list of rows names
-        """
-        
-        rows_list = self.get_rss_rows(channel)
-        return [_row['name'] for _row in rows_list]
-    
-    def get_table_list(self):
-        return [table for table in self.meta.tables]
-    
-    def get_column_list(self, table_name: str):
-        table = self.get_table(table_name)
-        return table.columns.keys() 
 
     # TODO : replace rss_dict with the actual arguments 
-    def add_rss_flux(self, rss_dict: dict, channel: int = None):
-        """
-        Add a new row in the table rss_flux,
-        trigger by the discord command $add_rss
+    def add_rss_flux(self, rss_dict: dict, channel_id: int):
+        """Add a new row in the table rss_flux.
         
         Args:
-
-            channel (int, optional): id of the discord channel where the command was executed. Defaults select from all channels.
-
+            rss_dict (dict): dictionnary of rss flux informations
+            channel_id (int): channel discord id
         """
         
-        if(rss_dict.get('channel')!=None):
-            channel=rss_dict.get('channel')
+        if('channel' in rss_dict.keys()):
+            channel_id = rss_dict.get('channel')
         with self.engine.connect() as conn:
-            # Get the primary key of the row with the channel id
-            channel_primary_key = self.get_channel_pkey(channel)
             rss_flux = self.get_table('rss_flux')
             ins = rss_flux.insert().values(name = rss_dict.get('name'),
                                         file_name = name_to_file(rss_dict.get('name'))+'.xml',
                                         url = rss_dict.get('url'),
-                                        channel = channel_primary_key,
+                                        channel = channel_id,
                                         last_time_fetched = rss_dict.get('last_time_fetched'),
                                         update_rate = rss_dict.get('update_rate'))
             conn.execute(ins)
             conn.commit()
             
-    def remove_rss_flux(self, name: str, channel: int):
+    def remove_rss_flux(self, name: str, channel_id: int):
+        """Remove a row in the table rss_flux.
+        
+        Args:
+            name (str): name of the rss flux to remove
+            channel_id (int): channel discord id
         """
-        Remove a row in the table rss_flux,
-        trigger by the discord command $remove_rss
-        """
+        
         # TODO : should raise error when it doesn't exist
         with self.engine.connect() as conn:
-            channel_pkey = self.get_channel_pkey(channel)
             rss_flux = self.get_table('rss_flux')
             ins = rss_flux.delete().where(and_(
                 rss_flux.c.name == name,
-                rss_flux.c.channel == channel_pkey
+                rss_flux.c.channel == channel_id
             ))
             conn.execute(ins)
             conn.commit()
 
     # TODO : change dict to individual params
-    def edit_rss_flux(self, name: str, channel: int, changes: dict):
-        """
-        Edit a row in the table rss_flux
-        trigger by the discord command $edit_rss
+    def edit_rss_flux(self, name: str, channel_id: int, changes: dict):
+        """Edit a row in the table rss_flux.
+        
+        Args:
+            name (str): name of the rss flux to edit
+            channel_id (int): channel discord id
+            changes (dict): changes to edit
         """
         
         with self.engine.connect() as conn:
-            if('channel' in changes.keys()):
-                channel_edit = changes['channel']
-                changes['channel'] = self.get_channel_pkey(channel_edit)
-            
-            channel_pkey = self.get_channel_pkey(channel)
             rss_flux = self.get_table('rss_flux')
             ins = rss_flux.update().where(and_(
                 rss_flux.c.name == name,
-                rss_flux.c.channel == channel_pkey
+                rss_flux.c.channel == channel_id
             )).values(changes)
             conn.execute(ins)
             conn.commit()
 
-    def to_fetch(self) -> list[dict]:
-        """
-        return a list of rss flux that need to be fetched
+    def to_fetch(self, channel_id: int = None) -> list[dict]:
+        """Return a list of rss flux that need to be fetched. If a channel id is provided, it will only list those from the related channel.
+        
+        Args:
+            channel_id (int, optional): channel discord id. Default is None.
         """
         
         now = date_to_int(datetime.utcnow())
         with self.engine.connect() as conn:
             rss_flux =  self.get_table('rss_flux')
-            ins = rss_flux.select().where(or_(
-                rss_flux.c.last_time_fetched == None,
-                rss_flux.c.update_rate == None,
-                rss_flux.c.last_time_fetched + rss_flux.c.update_rate <= now)
-            )
+            if (channel_id != None):
+                ins = rss_flux.select().where(
+                    and_(
+                        rss_flux.c.channel == channel_id,
+                        or_(
+                            rss_flux.c.last_time_fetched == None,
+                            rss_flux.c.update_rate == None,
+                            rss_flux.c.last_time_fetched + rss_flux.c.update_rate <= now)
+                        )
+                    )
+            else:
+                ins = rss_flux.select().where(
+                    or_(rss_flux.c.last_time_fetched == None,
+                        rss_flux.c.update_rate == None,
+                        rss_flux.c.last_time_fetched + rss_flux.c.update_rate <= now)
+                    )
             res = conn.execute(ins)
             rows_list = []
             for row in res:
@@ -320,15 +338,14 @@ class Database():
         return True
                         
     # TODO : support others parameters      
-    def import_list_rss(self, src_path: str, channel: int = None):
-        """ Add rss flux in database from a text file in cvs format.\n
+    def import_list_rss(self, src_path: str, channel_id: int = None):
+        """ Add rss flux in database from a text file in cvs format. If channel is provided, only rss flux from this channel will be exported.\n
         Format of the file:\n
             flux name;url[;channel[;last item[;last time fetched[;update rate]]]]
 
         Args:
             src_path (str): path to the file to import
-            channel (str): id of the discord channel from which the rss flux must be subscribed.
-             Defaults subscribe the flux in the channel from which the command is executed.
+            channel_id (str): id of the discord channel from which the rss flux must be subscribed. Default is None.
         """
         
         logger = logging.getLogger('Database')
@@ -349,15 +366,16 @@ class Database():
                     file_name = name_to_file(name)
                     if(len(line) > 2):
                         channel=line[2]
+                        channel_id = self.get_channel_id(channel)
                     # Add entry to database
-                    self.add_rss_flux({'name': name, 'file_name': file_name, 'url': url, 'channel': channel})
+                    self.add_rss_flux({'name': name, 'file_name': file_name, 'url': url, 'channel': channel_id}, channel_id)
                 cpt_line+=1
             logger.info("Import completed")
             rss_source.close()
 
     
     def export_list_rss(self, export_name: str = None, channel: int = None) -> str:
-        """Convert the database to a text file csv format  
+        """Convert the database to a text file csv format. 
 
         Args:
             export_name (str): name of the exported file. Default RSS-<date>.csv

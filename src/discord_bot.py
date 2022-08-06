@@ -37,12 +37,15 @@ async def show_rss(ctx):
     # Construct the message
     if len(rss_list) == 0:
         message="No active RSS flux in this channel. Add one with `$add_rss` command."
+        await ctx.send(message)
     else:
-        message="Currently active RSS flux in this channel:\n```"
+        embed = Embed(title="Currently active RSS flux in this channel")
+        rss_name=''
         for rss_flux in rss_list:
-            message+=f"{rss_flux['name']}\n"
-        message+="```For more information on a RSS flux, type `$info <flux_name>`."
-    await ctx.send(message)
+            rss_name+=f"{rss_flux['name']}\n"
+        embed.add_field(name="RSS Flux", value=rss_name, inline=True)
+        embed.set_footer(text="For more information on a RSS flux, type $info <flux_name>.")
+    await ctx.send(embed=embed)
 
 
 
@@ -82,11 +85,17 @@ async def info(ctx, flux_name: str):
     row = db.get_rss_row(flux_name, channel.id)
     channel_name = db.get_channel_name(row['channel'])
     row.update({'channel': channel_name})
-    message=f'Informations found about **{flux_name}**:\n```'
+    
+    embed = Embed(title=f'Informations found about {flux_name}')
+    keys = ''
+    values = ''
     for key in row.keys():
-        message+=f'{key}: {row[key]}\n'
-    message+='```To edit this flux, type `$edit_rss '+flux_name+' {<key>:<value>,...}`.'
-    await ctx.send(message)
+        keys+=f'{key}\n'
+        values+= f'{row[key]}\n'
+    embed.add_field(name='Key', value=keys)
+    embed.add_field(name='Value', value=values)
+    embed.set_footer(text=f'To edit this flux, type $edit_rss '+flux_name+' {<key>:<value>,...}.')
+    await ctx.send(embed=embed)
 
 
 
@@ -133,17 +142,16 @@ async def edit_rss(ctx, flux_name: str, edit_dict: str = None):
              description='Fetch rss flux and post new items.',
              usage='',
              help='')
-async def update(ctx, args: str = None):
-    
-    if(args != None) : nb_to_post = int(args)
-    to_fetch_list = db.to_fetch()
+async def update(ctx, *args: str):
+    channel = ctx.channel
+    if(args != None) :
+        nb_to_post = int(args[0])
+    to_fetch_list = db.to_fetch(channel.id)
     fetched_list = rss_bot.fetch(to_fetch_list, PRJCT_RSS)
     now = date_to_int(datetime.utcnow())
     for rss in fetched_list:
         xml_path = os.path.join(PRJCT_RSS,rss['file_name'])
         stop_title = rss['last_item']
-        discord_id = db.get_discord_id(rss['channel'])
-        channel = bot.get_channel(discord_id)
         rss_bot.xml_strip(xml_path, stop_title)
         items_list = rss_bot.get_items(xml_path)
         os.remove(xml_path)
@@ -151,7 +159,6 @@ async def update(ctx, args: str = None):
             embed = Embed(title=item['title'], url=item['link'])
             embed.set_footer(text=rss['name'])
             for key in item.keys():
-                print(key, item[key])
                 if key != 'title' and key != 'link':
                     text = item[key]
                     if len(text) >= 1024:
@@ -161,8 +168,8 @@ async def update(ctx, args: str = None):
             await channel.send(embed=embed)
         if(len(items_list) != 0) :
             last_item = items_list[0]['title']
-            db.edit_rss_flux(rss['name'],discord_id,{'last_item': last_item})
-        db.edit_rss_flux(rss['name'], discord_id,{'last_time_fetched': now})
+            db.edit_rss_flux(rss['name'], channel.id,{'last_item': last_item})
+        db.edit_rss_flux(rss['name'], channel.id,{'last_time_fetched': now})
     await ctx.send("Update completed.")
     
 

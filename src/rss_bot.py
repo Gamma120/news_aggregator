@@ -99,7 +99,7 @@ class RSS_Bot():
             tree = ET.parse(xml_path)
             root = tree.getroot()
         except ET.ParseError as e: # catch if the file is not in xml format
-            logger.error(e)
+            logger.error(f"On file {xml_path}: {e}")
         else:
             channel = root.find('channel')
             items_list = []

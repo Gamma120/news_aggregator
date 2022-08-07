@@ -88,7 +88,7 @@ def test_add_rss_flux(rss_dicts):
     
     # Test: add a first entry
     db.add_rss_flux(rss_dict_1,50)
-    rss_flux = db.get_rss_row('test_name_1', 10)
+    rss_flux = db.get_rss_row('test_name_1', 10)[0]
     assert len(rss_flux) == 8
     assert rss_flux['channel'] == 10
     
@@ -101,7 +101,7 @@ def test_add_rss_flux(rss_dicts):
     assert len(rss_list) == 2
     assert rss_name_list == ['test_name_1', 'test_name_2']
     ## check the name of the channel
-    rss_flux = db.get_rss_row('test_name_2', 11)
+    rss_flux = db.get_rss_row('test_name_2', 11)[0]
     assert rss_flux['channel'] == 11
 
 def test_remove_rss_flux(rss_dicts):
@@ -151,7 +151,8 @@ def test_get_rss_list(rss_dicts):
     # Get all entries in the table rss_flux 
     rss_list_all = db.get_rss_rows()
     assert len(rss_list_all) == 3
-    
+
+# TODO : update test when multiple results are returned
 def test_get_row(rss_dicts):
     """
     Test to get a row from name and channel columns
@@ -167,8 +168,8 @@ def test_get_row(rss_dicts):
     # Test: get the rows
     rss_dict_1.update({'id': 1, 'last_time_fetched': None, 'file_name': 'test_name_1.xml', 'last_item': None})
     rss_dict_2.update({'id': 2, 'channel': 11, 'last_time_fetched': None, 'file_name': 'test_name_2.xml', 'last_item': None})
-    rss_dict_1_res = db.get_rss_row(rss_dict_1['name'], rss_dict_1['channel'])
-    rss_dict_2_res = db.get_rss_row(rss_dict_2['name'], rss_dict_2['channel'])
+    rss_dict_1_res = db.get_rss_row(rss_dict_1['name'], rss_dict_1['channel'])[0]
+    rss_dict_2_res = db.get_rss_row(rss_dict_2['name'], rss_dict_2['channel'])[0]
     
     for key in rss_dict_1.keys(): # assumption: same keys between dictionnaries
         assert rss_dict_1_res[key] == rss_dict_1[key]
@@ -187,7 +188,7 @@ def test_edit_rss_flux(rss_dicts):
     db.add_rss_flux(rss_dict, 50)
     # Test : edit row in rss_flux
     db.edit_rss_flux('test_name_1', 10, {'channel': 11, 'url': 'test_url_edit', 'update_rate': timedelta_to_int(timedelta(days=2))})
-    rss_dict_res = db.get_rss_row(rss_dict['name'], 11)
+    rss_dict_res = db.get_rss_row(rss_dict['name'], 11)[0]
     ## the answer
     rss_dict_ans = {'id': 1, 'name': 'test_name_1', 'file_name': 'test_name_1.xml', 'url': 'test_url_edit', 'channel': 11, 'last_item': None, 'last_time_fetched': None, 'update_rate': timedelta_to_int(timedelta(days=2))}
     for key in rss_dict_ans.keys(): # assumption: same keys between dictionnaries

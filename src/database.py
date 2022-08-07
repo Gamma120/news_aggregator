@@ -171,25 +171,31 @@ class Database():
             conn.commit()
 
     # TODO : raise error
-    def get_rss_row(self, rss_name: str, channel_id: int) -> dict:
-        """Get a row from the rss_flux table.
+    def get_rss_row(self, rss_name: str, channel_id: int = None) -> list[dict]:
+        """Get a row from the rss_flux table. If channel_id is not provided, could return multiple rows.
 
         Args:
             rss_name (str): name of the rss flux
-            channel_id (int): channel discord id
+            channel_id (int, optional): channel discord id. default is None.
 
         Returns:
-            dict: the row in dictionnary type
+            list[dict]: a list of row in dictionnary type
         """
         
         with self.engine.connect() as conn:
             rss_flux = self.get_table('rss_flux')
-            ins = rss_flux.select().where(and_(
-                rss_flux.c.name == rss_name,
-                rss_flux.c.channel == channel_id)
-            )
+            ins = None
+            if(channel_id != None):
+                ins = rss_flux.select().where(and_(
+                    rss_flux.c.name == rss_name,
+                    rss_flux.c.channel == channel_id)
+                )
+            else:
+                ins = rss_flux.select().where(
+                    rss_flux.c.name == rss_name
+                )
             res = conn.execute(ins)
-            return dict(res.first()._mapping)
+            return [dict(_row) for _row in res]
             
     
     def get_rss_rows(self, channel_id: int = None) -> list[dict]:

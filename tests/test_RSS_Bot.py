@@ -177,9 +177,9 @@ def test_get_items():
     # Tested function
     items_list = rss_bot.get_items(test_xml_path)
     assert len(items_list) == 4
-    i = 0
+    i = 1
     for item in items_list:
-        assert item['title'] == 'Title '+str(nb_item-i)
+        assert item['title'] == 'Title '+str(i)
         assert item['link'] == 'https://example.com'
-        assert item['description'] == 'Description of item '+str(nb_item-i)
+        assert item['description'] == 'Description of item '+str(i)
         i+=1

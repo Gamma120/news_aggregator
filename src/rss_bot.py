@@ -111,4 +111,6 @@ class RSS_Bot():
                         if child.text != None:
                             item_dict[child.tag] = child.text
                 items_list.append(item_dict)
+            # reverse the list to have it in chronological order
+            items_list.reverse()
             return items_list

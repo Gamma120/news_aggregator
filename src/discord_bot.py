@@ -151,7 +151,7 @@ async def edit_rss(ctx, flux_name: str, edit_dict: str = None):
              description='Fetch rss flux and post new items.',
              usage='',
              help='')
-async def update(ctx, scope: str = None, reach: int = -1):
+async def update(ctx, scope: str = None, nb_item: int = None):
     channel = ctx.channel
     
     # update all channels or only current channel
@@ -171,7 +171,9 @@ async def update(ctx, scope: str = None, reach: int = -1):
         #os.remove(xml_path)
         # channel where this flux need to be posted
         rss_channel = bot.get_channel(rss['channel'])
-        for item in items_list[:reach]:
+        max_item = (len(items_list) if nb_item == None else min(len(items_list),nb_item))
+        print(nb_item, len(items_list), max_item)
+        for item in items_list[:max_item]:
             embed = Embed(title=item['title'], url=item['link'])
             embed.set_footer(text=rss['name'])
             for key in item.keys():
@@ -184,8 +186,8 @@ async def update(ctx, scope: str = None, reach: int = -1):
             await rss_channel.send(embed=embed)
         if(len(items_list) != 0) :
             last_item = items_list[0]['title']
-            db.edit_rss_flux(rss['name'], rss_channel, {'last_item': last_item})
-        db.edit_rss_flux(rss['name'], rss_channel, {'last_time_fetched': now})
+            db.edit_rss_flux(rss['name'], rss_channel.id, {'last_item': last_item})
+        db.edit_rss_flux(rss['name'], rss_channel.id, {'last_time_fetched': now})
     await ctx.send("Update completed.")
     
 

@@ -2,6 +2,7 @@ from sqlalchemy import *
 from datetime import datetime
 
 from src.utils import *
+from src.databaseException import *
 
 # TODO : add utf8 format in db
 
@@ -96,7 +97,16 @@ class Database():
                 channels.c.name == channel_name
             )
             res = conn.execute(select)
-            return res.first()['id']
+            rows_list = res.mappings().all()
+            # must return 1 result, raise error if not the case
+            if len(rows_list) < 1:
+                raise RowNotFound(channels.name, f"`{channel_name}` channel not found.")
+            else:
+                # raise warning if multiple match
+                if len(rows_list)>1:
+                    raise MultipleValuesWarning(channels.name,rows_list,f"Multiple match for channel name `{channel_name}`. Result may not be accurate.")
+                
+                return rows_list[0]['id']
     
     def get_channel_name(self, channel_id: int) -> str:
         """Get the channel name associated to the id provided.
@@ -114,7 +124,14 @@ class Database():
                 channels.c.id == channel_id
             )
             res = conn.execute(select)
-            return res.first()['name']
+            rows_list = res.mappings().all()
+            # must return 1 result, raise error if not the case
+            if len(rows_list) < 1:
+                raise RowNotFound(channels.name, f"No channel name associate with `{channel_id}`.")
+            elif len(rows_list)>1:
+                raise MultipleValuesError(channels.name, rows=rows_list, message=f"Database is corrupted. Multiple match for {channel_id}.")
+            else:
+                return rows_list[0]['name']
         
     def add_channel(self, channel_id: int, channel_name: str, update_rate: float = None):
         """Add a row in channels table.

@@ -8,6 +8,7 @@ from ast import literal_eval
 from src.utils import *
 from src.rss_bot import RSS_Bot
 from src.database import Database
+from src.databaseException import *
 
 bot = commands.Bot(command_prefix='$', help_command=None)
 db_path = os.path.join(PRJCT_DB,'news_aggregator.db')
@@ -19,6 +20,8 @@ rss_bot = RSS_Bot()
 #   Commands    #
 #################
 
+# FIXME : misalignment if text break in multiple line
+# FIXME : display broken on mobile
 
 @bot.command(name='show_rss',
              description='Show all subscribed rss flux of the channel',
@@ -43,7 +46,6 @@ async def show_rss(ctx):
     await ctx.send(embed=embed)
 
 
-# Display broken in mobile
 @bot.command(name='show_all',
              description='Show rss flux from all channels.',
              usage='',
@@ -69,33 +71,60 @@ async def show_all(ctx):
         await ctx.send(embed=embed)
 
 
-# FIXME : misalignment if text break in multiple line
 @bot.command(name='info',
              description='Display all information on a rss flux',
              usage='<flux name> [<channel_name>]',
              help='If a channel is not provided, search in all channels.')
 async def info(ctx, flux_name: str, channel_name : str = None):
+    logger = get_logger()
     rows = []
     if(channel_name == None):
         rows = db.get_rss_row(flux_name)
     else:
-        channel_id = db.get_channel_id(channel_name)
+        channel_id = None
+        try:
+            channel_id = db.get_channel_id(channel_name)
+        except (DatabaseError, DatabaseWarning) as e:
+            logger.log(level=e.level, msg=e)
+            embed = exception_message(e, e.level, get_level_color(e.level))
+            await ctx.send(embed=embed)
+            
+            # error -> terminate command
+            if e.level > WARNING : return
+            
         rows = db.get_rss_row(flux_name, channel_id)
         
     if(len(rows) != 1):
-        embed = Embed(title=f'Informations about {flux_name}')
+        embed = Embed(title=f'Informations about {flux_name}', color=get_level_color(INFO))
         channels = ''
         for rss in rows:
-            channels+= f"{db.get_channel_name(rss['channel'])}\n"
+            try:
+                # change channel id to channel name to display comprensible informations
+                channels+= f"{db.get_channel_name(rss['channel'])}\n"
+            except (DatabaseError, DatabaseWarning) as e:
+                logger.log(level=e.level, msg=e.message)
+                embed_error = exception_message(e, e.level, get_level_color(e.level))
+                await ctx.send(embed=embed_error)
+                # display channel id
+                channels+= f"{rss['channel']}\n"
+
         embed.add_field(name='Channel', value=channels)
         embed.set_footer(text=f'{len(rows)} Rss flux matched. Please type $info "{flux_name}" <channel_name> to have info on a specific entry.')
         await ctx.send(embed=embed)
     else:
         row = rows[0]
-        channel_name = db.get_channel_name(row['channel'])
-        row.update({'channel': channel_name})
+        row_channel = ''
+        try:
+            # change channel id to channel name to display comprensible informations
+            row_channel = db.get_channel_name(row['channel'])
+        except (DatabaseError, DatabaseWarning) as e:
+                logger.log(level=e.level, msg=e.message)
+                embed_error = exception_message(e, e.level, get_level_color(e.level))
+                await ctx.send(embed=embed_error)
+        else:
+            row.update({'channel': row_channel})
     
-        embed = Embed(title=f'Informations about {flux_name}')
+        embed = Embed(title=f'Informations about {flux_name}', color=get_level_color(INFO))
         keys = ''
         values = ''
         for key in row.keys():
@@ -104,7 +133,7 @@ async def info(ctx, flux_name: str, channel_name : str = None):
                 values+= f'{row[key]}\n'
         embed.add_field(name='\u200b', value=keys)
         embed.add_field(name='\u200b', value=values)
-        embed.set_footer(text=f'To edit this flux, type $edit_rss "{flux_name}" {channel_name}.')
+        embed.set_footer(text=f'To edit this flux, type $edit_rss "{flux_name}" {row["channel"]}.')
         await ctx.send(embed=embed)
 
 
@@ -240,7 +269,7 @@ async def _export(ctx, arg: str = None):
              usage='<command>',
              help='If no command provided in argument, display all commands available.')
 async def help(ctx, arg: str = None):
-    embed = Embed(title="Help", colour=Color.blue())
+    embed = Embed(title="Help", colour=Color.teal())
     if arg==None:
         help_cmd=''
         help_content=''
@@ -328,6 +357,21 @@ def update_channel_db(channel_list: list[dict]):
         logger.info("Channel "+ name + " (" + str(id) +") deleted.")
         db.remove_channel(id)
 
+def exception_message(exception : Exception, level: int, color: int) -> Embed:
+    embed = Embed(title=f'{type(exception).__name__}', color=color)
+    embed.add_field(name='\u200b', value=exception.message)
+    return embed
+    
+
+def get_level_color(level : int):
+    if level == ERROR:
+        return Color.red().value
+    elif level == WARNING:
+        return Color.orange().value
+    elif level == INFO:
+        return Color.from_rgb(87,87,179).value
+    else:
+        return Color.default().value
 
 #############
 #   ERRORS  #
